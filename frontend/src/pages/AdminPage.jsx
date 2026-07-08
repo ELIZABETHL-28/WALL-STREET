@@ -1,10 +1,19 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import '../styles/auth.css';
+import HabitacionesSection   from './admin/HabitacionesSection';
+import ReservacionesSection  from './admin/ReservacionesSection';
+import '../styles/admin.css';
+
+const SECCIONES = [
+  { id: 'habitaciones',  label: 'Habitaciones',  icono: '🏨' },
+  { id: 'reservaciones', label: 'Reservaciones', icono: '📋' },
+];
 
 export default function AdminPage() {
   const { systemUser, logout } = useAuth();
-  const navigate = useNavigate();
+  const navigate               = useNavigate();
+  const [seccion, setSeccion]  = useState('habitaciones');
 
   const handleLogout = async () => {
     await logout();
@@ -12,39 +21,60 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="admin-page">
-      <p className="auth-logo" style={{ marginBottom: '0.5rem' }}>Hotel Wall Street</p>
-      <div className="admin-badge">Panel Administrativo</div>
+    <div className="admin-layout">
+      {/* ── Barra lateral ─────────────────────────────────────── */}
+      <aside className="admin-sidebar">
+        <p className="admin-sidebar-brand">Hotel Wall Street</p>
+        <p className="admin-sidebar-sub">Panel Admin</p>
 
-      <h1 style={{ fontSize: '1.75rem', fontWeight: '700', marginBottom: '0.75rem' }}>
-        Bienvenido
-      </h1>
+        <nav>
+          <ul className="admin-nav">
+            {SECCIONES.map(s => (
+              <li key={s.id}>
+                <button
+                  className={`admin-nav-item ${seccion === s.id ? 'active' : ''}`}
+                  onClick={() => setSeccion(s.id)}
+                >
+                  <span className="admin-nav-icon">{s.icono}</span>
+                  {s.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
-      <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', marginBottom: '0.4rem' }}>
-        {systemUser?.correo}
-      </p>
-      <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem', marginBottom: '0.3rem' }}>
-        Rol: <span style={{ color: '#c9a84c' }}>{systemUser?.rol}</span>
-      </p>
-      <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem', marginBottom: '2rem' }}>
-        Estado: {systemUser?.estado}
-      </p>
+        <div className="admin-sidebar-footer">
+          <p className="admin-sidebar-user">{systemUser?.correo}</p>
+          <button className="btn-logout" style={{ width: '100%' }} onClick={handleLogout}>
+            Cerrar sesión
+          </button>
+        </div>
+      </aside>
 
-      <p style={{
-        padding: '0.75rem 1.5rem',
-        background: 'rgba(201,168,76,0.08)',
-        border: '1px solid rgba(201,168,76,0.2)',
-        borderRadius: '8px',
-        color: 'rgba(255,255,255,0.6)',
-        fontSize: '0.875rem',
-        marginBottom: '2rem',
-      }}>
-        Acceso administrativo autorizado.
-      </p>
+      {/* ── Contenido ─────────────────────────────────────────── */}
+      <div className="admin-content">
+        <header className="admin-topbar">
+          <span className="admin-topbar-title">
+            {SECCIONES.find(s => s.id === seccion)?.label || 'Panel'}
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>
+              {systemUser?.correo}
+            </span>
+            <span style={{
+              fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em',
+              color: '#c9a84c', textTransform: 'uppercase',
+            }}>
+              {systemUser?.rol}
+            </span>
+          </div>
+        </header>
 
-      <button className="btn-logout" onClick={handleLogout}>
-        Cerrar sesión
-      </button>
+        <main className="admin-main">
+          {seccion === 'habitaciones'  && <HabitacionesSection />}
+          {seccion === 'reservaciones' && <ReservacionesSection />}
+        </main>
+      </div>
     </div>
   );
 }

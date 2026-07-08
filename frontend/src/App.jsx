@@ -2,11 +2,12 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
-import LoginPage       from './pages/auth/LoginPage';
-import RegisterPage    from './pages/auth/RegisterPage';
+import LoginPage        from './pages/auth/LoginPage';
+import RegisterPage     from './pages/auth/RegisterPage';
 import AuthCallbackPage from './pages/auth/AuthCallbackPage';
-import ProfilePage     from './pages/ProfilePage';
-import AdminPage       from './pages/AdminPage';
+import ProfilePage      from './pages/ProfilePage';
+import AdminPage        from './pages/AdminPage';
+import ReservasPage     from './pages/ReservasPage';
 
 export default function App() {
   return (
@@ -27,6 +28,16 @@ export default function App() {
             element={
               <ProtectedRoute requiredRole="CLIENTE">
                 <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Reservaciones CLIENTE */}
+          <Route
+            path="/reservas"
+            element={
+              <ProtectedRoute requiredRole="CLIENTE">
+                <ReservasPage />
               </ProtectedRoute>
             }
           />

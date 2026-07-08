@@ -152,6 +152,18 @@ export default function ProfilePage() {
             <span className="profile-info-label">Estado</span>
             <span className="profile-info-value">{systemUser?.estado}</span>
           </div>
+
+          {systemUser?.rol === 'CLIENTE' && (
+            <div style={{ marginTop: '1rem' }}>
+              <button
+                className="btn-primary"
+                onClick={() => navigate('/reservas')}
+                style={{ fontSize: '0.85rem' }}
+              >
+                🛏️ Mis Reservaciones
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Perfil personal */}
