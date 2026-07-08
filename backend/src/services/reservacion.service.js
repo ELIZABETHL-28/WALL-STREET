@@ -14,12 +14,16 @@
  */
 
 const { pool } = require('../config/mysql');
-const crypto   = require('crypto');
+const crypto = require('crypto');
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
 // Solo estos estados bloquean disponibilidad de habitación.
-const ESTADOS_BLOQUEAN = ['CONFIRMADA', 'CHECK_IN'];
+const ESTADOS_BLOQUEAN = [
+  'PENDIENTE',
+  'CONFIRMADA',
+  'CHECK_IN'
+];
 
 // Estados operativos de habitación que permiten ser reservadas.
 const ESTADOS_RESERVABLES = ['DISPONIBLE', 'RESERVADA'];
@@ -27,11 +31,11 @@ const ESTADOS_RESERVABLES = ['DISPONIBLE', 'RESERVADA'];
 // Transiciones de estado válidas para el ADMIN.
 // Clave: estado actual → valores: estados a los que puede transicionar.
 const TRANSICIONES_VALIDAS = {
-  PENDIENTE:  ['CONFIRMADA', 'CANCELADA'],
+  PENDIENTE: ['CONFIRMADA', 'CANCELADA'],
   CONFIRMADA: ['CHECK_IN', 'CANCELADA'],
-  CHECK_IN:   ['CHECK_OUT'],
-  CHECK_OUT:  [],           // Estado terminal
-  CANCELADA:  [],           // Estado terminal
+  CHECK_IN: ['CHECK_OUT'],
+  CHECK_OUT: [],           // Estado terminal
+  CANCELADA: [],           // Estado terminal
 };
 
 // ─── Helpers privados ─────────────────────────────────────────────────────────
@@ -114,7 +118,7 @@ async function consultarCandidatas(fechaEntrada, fechaSalida, cantidadVisitantes
         SELECT rh.id_habitacion
         FROM reservacion_habitaciones rh
         INNER JOIN reservaciones r ON r.id_reservacion = rh.id_reservacion
-        WHERE r.estado IN ('CONFIRMADA', 'CHECK_IN')
+        WHERE r.estado IN ('PENDIENTE', 'CONFIRMADA', 'CHECK_IN')
           AND r.fecha_entrada < ?
           AND r.fecha_salida  > ?
       )
@@ -158,7 +162,7 @@ async function consultarCandidatasConLock(conn, fechaEntrada, fechaSalida, canti
         SELECT rh.id_habitacion
         FROM reservacion_habitaciones rh
         INNER JOIN reservaciones r ON r.id_reservacion = rh.id_reservacion
-        WHERE r.estado IN ('CONFIRMADA', 'CHECK_IN')
+        WHERE r.estado IN ('PENDIENTE', 'CONFIRMADA', 'CHECK_IN')
           AND r.fecha_entrada < ?
           AND r.fecha_salida  > ?
       )
@@ -276,9 +280,9 @@ async function getReservacionCompleta(idReservacion) {
  * Incluye la habitación recomendada (primera según ranking).
  */
 async function consultarDisponibilidad({ fechaEntrada, fechaSalida, cantidadVisitantes }) {
-  const candidatas   = await consultarCandidatas(fechaEntrada, fechaSalida, cantidadVisitantes);
-  const recomendada  = seleccionarMejorHabitacion(candidatas, cantidadVisitantes);
-  const noches       = calcularNoches(fechaEntrada, fechaSalida);
+  const candidatas = await consultarCandidatas(fechaEntrada, fechaSalida, cantidadVisitantes);
+  const recomendada = seleccionarMejorHabitacion(candidatas, cantidadVisitantes);
+  const noches = calcularNoches(fechaEntrada, fechaSalida);
 
   return {
     fechaEntrada,
@@ -286,8 +290,8 @@ async function consultarDisponibilidad({ fechaEntrada, fechaSalida, cantidadVisi
     noches,
     cantidadVisitantes,
     totalDisponibles: candidatas.length,
-    habitaciones:     candidatas,
-    recomendada:      recomendada || null,
+    habitaciones: candidatas,
+    recomendada: recomendada || null,
   };
 }
 
@@ -310,12 +314,12 @@ async function crearReservacion(idUsuario, datos) {
     fechaEntrada,
     fechaSalida,
     cantidadAdultos,
-    cantidadNinos  = 0,
-    visitantes     = [],
+    cantidadNinos = 0,
+    visitantes = [],
   } = datos;
 
   const cantidadVisitantes = cantidadAdultos + cantidadNinos;
-  const noches             = calcularNoches(fechaEntrada, fechaSalida);
+  const noches = calcularNoches(fechaEntrada, fechaSalida);
 
   const connection = await pool.getConnection();
 
@@ -350,11 +354,11 @@ async function crearReservacion(idUsuario, datos) {
     }
 
     // 4. Calcular montos
-    const precioNoche     = parseFloat(habitacion.precio_noche);
-    const subtotalHab     = parseFloat((precioNoche * noches).toFixed(2));
-    const subtotalTotal   = subtotalHab;
-    const descuento       = 0.00;
-    const total           = parseFloat((subtotalTotal - descuento).toFixed(2));
+    const precioNoche = parseFloat(habitacion.precio_noche);
+    const subtotalHab = parseFloat((precioNoche * noches).toFixed(2));
+    const subtotalTotal = subtotalHab;
+    const descuento = 0.00;
+    const total = parseFloat((subtotalTotal - descuento).toFixed(2));
     const camasRequeridas = habitacion.total_camas || 1;
 
     // 5. Generar código único
@@ -403,9 +407,9 @@ async function crearReservacion(idUsuario, datos) {
            VALUES (?, ?, ?, ?, ?, ?)`,
           [
             idReservacion,
-            v.nombres    || '',
-            v.apellidos  || '',
-            v.tipoDocumento   || 'DPI',
+            v.nombres || '',
+            v.apellidos || '',
+            v.tipoDocumento || 'DPI',
             v.numeroDocumento || null,
             v.esTitular === true ? 1 : 0,
           ]
@@ -614,7 +618,7 @@ async function cambiarEstadoReservacion(idReservacion, nuevoEstado) {
   }
 
   const estadoActual = rows[0].estado;
-  const permitidos   = TRANSICIONES_VALIDAS[estadoActual] || [];
+  const permitidos = TRANSICIONES_VALIDAS[estadoActual] || [];
 
   if (!permitidos.includes(nuevoEstado)) {
     const err = new Error(
