@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import HabitacionesSection   from './admin/HabitacionesSection';
 import ReservacionesSection  from './admin/ReservacionesSection';
+import ServiciosSection      from './admin/ServiciosSection';
 import '../styles/admin.css';
 
 const SECCIONES = [
   { id: 'habitaciones',  label: 'Habitaciones',  icono: '🏨' },
   { id: 'reservaciones', label: 'Reservaciones', icono: '📋' },
+  { id: 'servicios',     label: 'Servicios',     icono: '🛎️' },
 ];
 
 export default function AdminPage() {
@@ -26,7 +28,7 @@ export default function AdminPage() {
       <aside className="admin-sidebar">
         <p className="admin-sidebar-brand">Hotel Wall Street</p>
         <p className="admin-sidebar-sub">Panel Admin</p>
-
+ 
         <nav>
           <ul className="admin-nav">
             {SECCIONES.map(s => (
@@ -73,6 +75,7 @@ export default function AdminPage() {
         <main className="admin-main">
           {seccion === 'habitaciones'  && <HabitacionesSection />}
           {seccion === 'reservaciones' && <ReservacionesSection />}
+          {seccion === 'servicios'     && <ServiciosSection />}
         </main>
       </div>
     </div>

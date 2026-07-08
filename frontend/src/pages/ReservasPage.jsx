@@ -3,7 +3,7 @@
  * Módulo de Reservaciones para CLIENTE.
  * Navegación interna: Mi perfil | Reservar habitación | Mis reservaciones
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import supabase from '../services/supabase';
@@ -14,6 +14,12 @@ import {
   getMiReservacion,
   cancelarReservacion,
 } from '../services/reservacion.service';
+import {
+  getServiciosCliente,
+  getServiciosReservacion,
+  agregarServicioReservacion,
+  quitarServicioReservacion,
+} from '../services/servicio.service';
 import '../styles/auth.css';
 import '../styles/admin.css';
 
@@ -547,11 +553,256 @@ function MisReservacionesSection() {
   );
 }
 
+// ── Sección: Servicios Adicionales para Cliente ───────────────────────────────
+
+function ServiciosClienteSection() {
+  const [reservaciones, setReservaciones] = useState([]);
+  const [selectedResId, setSelectedResId] = useState('');
+  const [catalog, setCatalog]             = useState([]);
+  const [associated, setAssociated]       = useState([]);
+  const [loading, setLoading]             = useState(false);
+  const [loadingServices, setLoadingServices] = useState(false);
+  const [error, setError]                 = useState('');
+  const [success, setSuccess]             = useState('');
+
+  const cargarReservaciones = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await getMisReservaciones();
+      // Filtrar reservaciones compatibles (no canceladas ni check-out)
+      const compatibles = (res.reservaciones || []).filter(
+        r => !['CANCELADA', 'CHECK_OUT'].includes(r.estado)
+      );
+      setReservaciones(compatibles);
+      if (compatibles.length > 0) {
+        setSelectedResId(String(compatibles[0].id_reservacion));
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cargarCatalog = async () => {
+    try {
+      const res = await getServiciosCliente();
+      setCatalog(res.servicios || []);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  useEffect(() => {
+    cargarReservaciones();
+    cargarCatalog();
+  }, []);
+
+  const cargarServiciosAsociados = async (resId) => {
+    if (!resId) return;
+    setLoadingServices(true);
+    try {
+      const res = await getServiciosReservacion(resId);
+      setAssociated(res.servicios || []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoadingServices(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedResId) {
+      cargarServiciosAsociados(selectedResId);
+    } else {
+      setAssociated([]);
+    }
+  }, [selectedResId]);
+
+  const flash = (msg) => {
+    setSuccess(msg);
+    setTimeout(() => setSuccess(''), 3000);
+  };
+
+  const handleAgregarServicio = async (idServicio) => {
+    if (!selectedResId) return;
+    setError('');
+    try {
+      const res = await agregarServicioReservacion(selectedResId, idServicio, 1);
+      setAssociated(res.servicios || []);
+      flash('Servicio agregado correctamente a la reservación.');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleQuitarServicio = async (idReservacionServicio) => {
+    if (!selectedResId) return;
+    if (!window.confirm('¿Confirmas que deseas quitar este servicio de la reservación?')) return;
+    setError('');
+    try {
+      const res = await quitarServicioReservacion(selectedResId, idReservacionServicio);
+      setAssociated(res.servicios || []);
+      flash('Servicio removido correctamente.');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  // Encontrar detalles de la reservación seleccionada para mostrar su estado
+  const currentRes = reservaciones.find(r => String(r.id_reservacion) === selectedResId);
+
+  if (loading) return <p className="admin-loading">Cargando reservaciones...</p>;
+
+  return (
+    <div>
+      <div className="admin-section-header">
+        <h2 className="admin-section-title">Servicios Adicionales</h2>
+      </div>
+
+      {error   && <div className="admin-error">{error}</div>}
+      {success && <div className="admin-success">{success}</div>}
+
+      {reservaciones.length === 0 ? (
+        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem', padding: '2rem 0' }}>
+          No tienes reservaciones activas compatibles (PENDIENTE, CONFIRMADA o CHECK_IN) para gestionar servicios adicionales.
+        </div>
+      ) : (
+        <div>
+          {/* Selector de reservación */}
+          <div className="form-field" style={{ maxWidth: '400px', marginBottom: '2rem' }}>
+            <label htmlFor="select-reservacion">Selecciona una de tus Reservaciones Activas</label>
+            <select
+              id="select-reservacion"
+              value={selectedResId}
+              onChange={e => setSelectedResId(e.target.value)}
+              style={{ background: '#111', border: '1px solid #222' }}
+            >
+              {reservaciones.map(r => (
+                <option key={r.id_reservacion} value={r.id_reservacion}>
+                  Reservación #{r.id_reservacion} (Hab. {r.numero_habitacion || '—'}) [Entrada: {formatFecha(r.fecha_entrada)}]
+                </option>
+              ))}
+            </select>
+            {currentRes && (
+              <div style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>
+                Estado de la reservación: <EstadoBadge estado={currentRes.estado} />
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+            
+            {/* Catálogo de Servicios Disponibles */}
+            <div>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f0f0f0', marginBottom: '1rem', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                Catálogo de Servicios Disponibles
+              </h3>
+              {catalog.length === 0 ? (
+                <p className="muted" style={{ fontSize: '0.85rem' }}>No hay servicios adicionales activos en el hotel.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {catalog.map(s => (
+                    <div key={s.id_servicio} style={{
+                      background: '#111',
+                      border: '1px solid #1e1e1e',
+                      borderRadius: '8px',
+                      padding: '1rem',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}>
+                      <div style={{ flex: 1, paddingRight: '1rem' }}>
+                        <p style={{ fontSize: '0.9rem', fontWeight: 600, color: '#f0f0f0', margin: 0 }}>
+                          {s.nombre}
+                        </p>
+                        <p className="muted" style={{ fontSize: '0.78rem', margin: '0.25rem 0 0 0', color: 'rgba(255,255,255,0.45)' }}>
+                          {s.descripcion || 'Sin descripción'}
+                        </p>
+                        <p style={{ fontSize: '0.85rem', color: '#c9a84c', fontWeight: 600, margin: '0.4rem 0 0 0' }}>
+                          Q {Number(s.precio).toFixed(2)}
+                        </p>
+                      </div>
+                      <button
+                        className="btn-new"
+                        onClick={() => handleAgregarServicio(s.id_servicio)}
+                        style={{ fontSize: '0.72rem', padding: '0.4rem 0.8rem' }}
+                      >
+                        + Agregar
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Servicios Asociados a la Reservación */}
+            <div>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f0f0f0', marginBottom: '1rem', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                Servicios en esta Reservación
+              </h3>
+              {loadingServices ? (
+                <p className="admin-loading" style={{ padding: '1rem' }}>Cargando servicios asociados...</p>
+              ) : associated.length === 0 ? (
+                <p className="muted" style={{ fontSize: '0.85rem' }}>No has agregado servicios adicionales a esta reservación.</p>
+              ) : (
+                <div className="admin-table-wrap">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Servicio</th>
+                        <th>Cant.</th>
+                        <th>Precio Unit.</th>
+                        <th>Subtotal</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {associated.map(asoc => (
+                        <tr key={asoc.id_reservacion_servicio}>
+                          <td style={{ fontWeight: 600 }}>
+                            {asoc.servicio_nombre}
+                          </td>
+                          <td>{asoc.cantidad}</td>
+                          <td>Q {Number(asoc.precio_unitario_aplicado).toFixed(2)}</td>
+                          <td style={{ fontWeight: 600 }}>Q {Number(asoc.subtotal).toFixed(2)}</td>
+                          <td>
+                            <button
+                              className="btn-icon danger"
+                              onClick={() => handleQuitarServicio(asoc.id_reservacion_servicio)}
+                              title="Quitar de la reservación"
+                            >
+                              🗑️
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div style={{ padding: '0.8rem 1rem', background: '#111', borderTop: '1px solid #1e1e1e', display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 700 }}>
+                    <span>Total en Servicios:</span>
+                    <span style={{ color: '#c9a84c' }}>
+                      Q {associated.reduce((sum, asoc) => sum + parseFloat(asoc.subtotal), 0).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Página principal ──────────────────────────────────────────────────────────
 
 const SECCIONES_CLIENTE = [
   { id: 'reservar',    label: 'Reservar habitación', icono: '🛏️' },
   { id: 'misreservas', label: 'Mis reservaciones',   icono: '📋' },
+  { id: 'servicios',   label: 'Servicios Adicionales', icono: '🛎️' },
 ];
 
 export default function ReservasPage() {
@@ -626,6 +877,7 @@ export default function ReservasPage() {
         <main className="admin-main">
           {seccion === 'reservar'    && <ReservarSection />}
           {seccion === 'misreservas' && <MisReservacionesSection />}
+          {seccion === 'servicios'   && <ServiciosClienteSection />}
         </main>
       </div>
     </div>

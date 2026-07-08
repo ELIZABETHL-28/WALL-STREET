@@ -4,6 +4,7 @@ const authRoutes        = require('./auth.routes');
 const clientRoutes      = require('./client.routes');
 const habitacionRoutes  = require('./habitacion.routes');
 const reservacionRoutes = require('./reservacion.routes');
+const servicioRoutes    = require('./servicio.routes');
 
 const router = Router();
 
@@ -21,5 +22,8 @@ router.use('/habitaciones',  habitacionRoutes);
 
 // /api/reservaciones  (CLIENTE + ADMIN)
 router.use('/reservaciones', reservacionRoutes);
+
+// /api/servicios  (CLIENTE + ADMIN)
+router.use('/servicios',     servicioRoutes);
 
 module.exports = router;
