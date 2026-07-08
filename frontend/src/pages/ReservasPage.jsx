@@ -513,7 +513,7 @@ function MisReservacionesSection() {
     <div>
       <div className="admin-section-header">
         <h2 className="admin-section-title">Mis Reservaciones</h2>
-        <button className="btn-icon" onClick={cargar}>Actualizar Actualizar</button>
+        <button className="btn-icon" onClick={cargar}>Actualizar</button>
       </div>
 
       {!reservaciones || reservaciones.length === 0 ? (
@@ -890,7 +890,7 @@ function ActividadesClienteSection() {
     <div>
       <div className="admin-section-header">
         <h2 className="admin-section-title">Actividades del Hotel</h2>
-        <button className="btn-icon" onClick={cargar}>Actualizar Actualizar</button>
+        <button className="btn-icon" onClick={cargar}>Actualizar</button>
       </div>
 
       {error && <div className="admin-error">{error}</div>}
@@ -1117,7 +1117,7 @@ function PasesClienteSection() {
     <div>
       <div className="admin-section-header">
         <h2 className="admin-section-title">Pases de Día</h2>
-        <button className="btn-icon" onClick={cargar}>Actualizar Actualizar</button>
+        <button className="btn-icon" onClick={cargar}>Actualizar</button>
       </div>
 
       {error && <div className="admin-error">{error}</div>}
