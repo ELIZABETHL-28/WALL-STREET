@@ -5,48 +5,84 @@
  */
 import supabase from './supabase';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API =
+  import.meta.env.VITE_API_URL ||
+  'http://localhost:3000/api';
 
 async function token() {
-  const { data } = await supabase.auth.getSession();
+  const { data } =
+    await supabase.auth.getSession();
+
   return data.session?.access_token || '';
 }
 
 async function request(method, path, body) {
   const tk = await token();
+
   const res = await fetch(`${API}${path}`, {
     method,
     headers: {
       Authorization: `Bearer ${tk}`,
       'Content-Type': 'application/json',
     },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body:
+      body !== undefined
+        ? JSON.stringify(body)
+        : undefined,
   });
+
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Error en la solicitud.');
+
+  if (!res.ok) {
+    throw new Error(
+      json.error || 'Error en la solicitud.'
+    );
+  }
+
   return json;
 }
 
-// ── CLIENTE ───────────────────────────────────────────────────────────────────
+// CLIENTE
 
 /**
  * Consulta disponibilidad.
- * @param {string} fechaEntrada  YYYY-MM-DD
- * @param {string} fechaSalida   YYYY-MM-DD
+ * @param {string} fechaEntrada YYYY-MM-DD
+ * @param {string} fechaSalida YYYY-MM-DD
  * @param {number} cantidadVisitantes
+ * @param {number} camasRequeridas
  */
-export const consultarDisponibilidad = (fechaEntrada, fechaSalida, cantidadVisitantes) => {
+export const consultarDisponibilidad = (
+  fechaEntrada,
+  fechaSalida,
+  cantidadVisitantes,
+  camasRequeridas = 1
+) => {
   const qs = new URLSearchParams({
     fechaEntrada,
     fechaSalida,
-    cantidadVisitantes: String(cantidadVisitantes),
+    cantidadVisitantes:
+      String(cantidadVisitantes),
+    camasRequeridas:
+      String(camasRequeridas),
   }).toString();
-  return request('GET', `/reservaciones/disponibilidad?${qs}`);
+
+  return request(
+    'GET',
+    `/reservaciones/disponibilidad?${qs}`
+  );
 };
 
 /**
  * Crear una nueva reservación.
- * @param {object} data  { fechaEntrada, fechaSalida, cantidadAdultos, cantidadNinos?, visitantes? }
+ * @param {object} data
+ * {
+ *   fechaEntrada,
+ *   fechaSalida,
+ *   cantidadAdultos,
+ *   cantidadNinos?,
+ *   camasRequeridas,
+ *   visitantes?
+ * }
  */
 export const crearReservacion = (data) =>
   request('POST', '/reservaciones', data);
@@ -57,29 +93,59 @@ export const getMisReservaciones = () =>
 
 /** Detalle de una reservación propia. */
 export const getMiReservacion = (id) =>
-  request('GET', `/reservaciones/mias/${id}`);
+  request(
+    'GET',
+    `/reservaciones/mias/${id}`
+  );
 
 /** Cancelar una reservación propia. */
 export const cancelarReservacion = (id) =>
-  request('PATCH', `/reservaciones/mias/${id}/cancelar`);
+  request(
+    'PATCH',
+    `/reservaciones/mias/${id}/cancelar`
+  );
 
-// ── ADMIN ─────────────────────────────────────────────────────────────────────
+// ADMIN
 
 /**
  * Lista todas las reservaciones (admin).
- * @param {object} filtros  { estado?, fechaDesde?, fechaHasta? }
+ * @param {object} filtros
+ * { estado?, fechaDesde?, fechaHasta? }
  */
-export const getReservacionesAdmin = (filtros = {}) => {
+export const getReservacionesAdmin = (
+  filtros = {}
+) => {
   const qs = new URLSearchParams(
-    Object.fromEntries(Object.entries(filtros).filter(([, v]) => v !== undefined && v !== ''))
+    Object.fromEntries(
+      Object.entries(filtros).filter(
+        ([, value]) =>
+          value !== undefined &&
+          value !== ''
+      )
+    )
   ).toString();
-  return request('GET', `/reservaciones/admin${qs ? '?' + qs : ''}`);
+
+  return request(
+    'GET',
+    `/reservaciones/admin${qs ? `?${qs}` : ''
+    }`
+  );
 };
 
 /** Detalle de cualquier reservación (admin). */
 export const getReservacionAdmin = (id) =>
-  request('GET', `/reservaciones/admin/${id}`);
+  request(
+    'GET',
+    `/reservaciones/admin/${id}`
+  );
 
 /** Cambiar estado de una reservación (admin). */
-export const cambiarEstadoReservacion = (id, estado) =>
-  request('PATCH', `/reservaciones/admin/${id}/estado`, { estado });
+export const cambiarEstadoReservacion = (
+  id,
+  estado
+) =>
+  request(
+    'PATCH',
+    `/reservaciones/admin/${id}/estado`,
+    { estado }
+  );

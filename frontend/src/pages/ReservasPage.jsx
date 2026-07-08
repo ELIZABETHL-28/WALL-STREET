@@ -94,12 +94,16 @@ function EstadoBadge({ estado }) {
 // ── Sección: Reservar habitación ──────────────────────────────────────────────
 
 function ReservarSection() {
-  const [step, setStep] = useState('buscar'); // buscar | resultado | confirmado
+  const [step, setStep] = useState('buscar');
+
   const [form, setForm] = useState({
     fechaEntrada: hoy(),
     fechaSalida: manana(),
-    cantidadVisitantes: 1,
+    cantidadAdultos: 1,
+    cantidadNinos: 0,
+    camasRequeridas: 1,
   });
+
   const [busqueda, setBusqueda] = useState(null);
   const [loadingBusca, setLoadingBusca] = useState(false);
   const [loadingConf, setLoadingConf] = useState(false);
@@ -107,31 +111,114 @@ function ReservarSection() {
   const [error, setError] = useState('');
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const obtenerDatosFormulario = () => {
+    const cantidadAdultos = parseInt(
+      form.cantidadAdultos,
+      10
+    );
+
+    const cantidadNinos = parseInt(
+      form.cantidadNinos,
+      10
+    );
+
+    const camasRequeridas = parseInt(
+      form.camasRequeridas,
+      10
+    );
+
+    const cantidadVisitantes =
+      cantidadAdultos + cantidadNinos;
+
+    return {
+      cantidadAdultos,
+      cantidadNinos,
+      camasRequeridas,
+      cantidadVisitantes,
+    };
+  };
+
+  const validarFormulario = () => {
+    const {
+      cantidadAdultos,
+      cantidadNinos,
+      camasRequeridas,
+      cantidadVisitantes,
+    } = obtenerDatosFormulario();
+
+    if (
+      !Number.isInteger(cantidadAdultos) ||
+      cantidadAdultos < 1
+    ) {
+      return 'Debe existir al menos 1 adulto.';
+    }
+
+    if (
+      !Number.isInteger(cantidadNinos) ||
+      cantidadNinos < 0
+    ) {
+      return 'La cantidad de niños no puede ser negativa.';
+    }
+
+    if (
+      !Number.isInteger(camasRequeridas) ||
+      camasRequeridas < 1
+    ) {
+      return 'Debe solicitar al menos 1 cama.';
+    }
+
+    if (cantidadVisitantes < 1) {
+      return 'Debe existir al menos 1 visitante.';
+    }
+
+    if (
+      new Date(form.fechaSalida) <=
+      new Date(form.fechaEntrada)
+    ) {
+      return 'La fecha de salida debe ser posterior a la fecha de entrada.';
+    }
+
+    return null;
   };
 
   const handleBuscar = async (e) => {
     e.preventDefault();
+
     setError('');
     setBusqueda(null);
 
-    const visitantes = parseInt(form.cantidadVisitantes, 10);
-    if (!visitantes || visitantes < 1) {
-      setError('Cantidad de visitantes debe ser >= 1.');
-      return;
-    }
-    if (new Date(form.fechaSalida) <= new Date(form.fechaEntrada)) {
-      setError('La fecha de salida debe ser posterior a la de entrada.');
+    const errorValidacion =
+      validarFormulario();
+
+    if (errorValidacion) {
+      setError(errorValidacion);
       return;
     }
 
+    const {
+      cantidadVisitantes,
+      camasRequeridas,
+    } = obtenerDatosFormulario();
+
     setLoadingBusca(true);
+
     try {
-      const data = await consultarDisponibilidad(
-        form.fechaEntrada,
-        form.fechaSalida,
-        visitantes
-      );
+      const data =
+        await consultarDisponibilidad(
+          form.fechaEntrada,
+          form.fechaSalida,
+          cantidadVisitantes,
+          camasRequeridas
+        );
+
       setBusqueda(data);
       setStep('resultado');
     } catch (err) {
@@ -142,16 +229,29 @@ function ReservarSection() {
   };
 
   const handleConfirmar = async () => {
-    if (!busqueda?.recomendada) return;
+    if (!busqueda?.recomendada) {
+      return;
+    }
+
     setError('');
     setLoadingConf(true);
+
     try {
+      const {
+        cantidadAdultos,
+        cantidadNinos,
+        camasRequeridas,
+      } = obtenerDatosFormulario();
+
       const data = await crearReservacion({
         fechaEntrada: form.fechaEntrada,
         fechaSalida: form.fechaSalida,
-        cantidadAdultos: parseInt(form.cantidadVisitantes, 10),
-        cantidadNinos: 0,
+        cantidadAdultos,
+        cantidadNinos,
+        camasRequeridas,
+        visitantes: [],
       });
+
       setReservaCreada(data.reservacion);
       setStep('confirmado');
     } catch (err) {
@@ -166,96 +266,208 @@ function ReservarSection() {
     setBusqueda(null);
     setReservaCreada(null);
     setError('');
-    setForm({ fechaEntrada: hoy(), fechaSalida: manana(), cantidadVisitantes: 1 });
+
+    setForm({
+      fechaEntrada: hoy(),
+      fechaSalida: manana(),
+      cantidadAdultos: 1,
+      cantidadNinos: 0,
+      camasRequeridas: 1,
+    });
   };
 
-  // ── Paso: Buscar ─────────────────────────────────────────────────────────
+  // ---------------------------------------------------------------------------
+  // Buscar disponibilidad
+  // ---------------------------------------------------------------------------
+
   if (step === 'buscar') {
     return (
       <div>
-        <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#f0f0f0', marginBottom: '1.5rem', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+        <h2
+          style={{
+            fontSize: '1rem',
+            fontWeight: 700,
+            color: '#f0f0f0',
+            marginBottom: '1.5rem',
+            letterSpacing: '0.04em',
+            textTransform: 'uppercase',
+          }}
+        >
           Reservar Habitación
         </h2>
 
-        {error && <div className="admin-error">{error}</div>}
-
-        <form onSubmit={handleBuscar} style={{ maxWidth: 480 }}>
-          <div className="form-field">
-            <label htmlFor="fechaEntrada">Fecha de entrada</label>
-            <input
-              id="fechaEntrada"
-              name="fechaEntrada"
-              type="date"
-              value={form.fechaEntrada}
-              min={hoy()}
-              onChange={handleChange}
-              disabled={loadingBusca}
-              required
-            />
+        {error && (
+          <div className="admin-error">
+            {error}
           </div>
+        )}
 
-          <div className="form-field">
-            <label htmlFor="fechaSalida">Fecha de salida</label>
-            <input
-              id="fechaSalida"
-              name="fechaSalida"
-              type="date"
-              value={form.fechaSalida}
-              min={form.fechaEntrada || hoy()}
-              onChange={handleChange}
-              disabled={loadingBusca}
-              required
-            />
-          </div>
+        <form
+          onSubmit={handleBuscar}
+          style={{
+            maxWidth: '600px',
+          }}
+        >
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns:
+                'repeat(2, minmax(0, 1fr))',
+              gap: '1rem',
+            }}
+          >
+            <div className="form-field">
+              <label htmlFor="fechaEntrada">
+                Fecha de entrada
+              </label>
 
-          <div className="form-field">
-            <label htmlFor="cantidadVisitantes">Cantidad de visitantes</label>
-            <input
-              id="cantidadVisitantes"
-              name="cantidadVisitantes"
-              type="number"
-              min="1"
-              max="20"
-              value={form.cantidadVisitantes}
-              onChange={handleChange}
-              disabled={loadingBusca}
-              required
-            />
+              <input
+                id="fechaEntrada"
+                name="fechaEntrada"
+                type="date"
+                min={hoy()}
+                value={form.fechaEntrada}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="fechaSalida">
+                Fecha de salida
+              </label>
+
+              <input
+                id="fechaSalida"
+                name="fechaSalida"
+                type="date"
+                min={form.fechaEntrada}
+                value={form.fechaSalida}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="cantidadAdultos">
+                Adultos
+              </label>
+
+              <input
+                id="cantidadAdultos"
+                name="cantidadAdultos"
+                type="number"
+                min="1"
+                value={form.cantidadAdultos}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="cantidadNinos">
+                Niños
+              </label>
+
+              <input
+                id="cantidadNinos"
+                name="cantidadNinos"
+                type="number"
+                min="0"
+                value={form.cantidadNinos}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="camasRequeridas">
+                Camas requeridas
+              </label>
+
+              <input
+                id="camasRequeridas"
+                name="camasRequeridas"
+                type="number"
+                min="1"
+                value={form.camasRequeridas}
+                onChange={handleChange}
+                required
+              />
+            </div>
           </div>
 
           <button
             type="submit"
             className="btn-new"
             disabled={loadingBusca}
-            style={{ marginTop: '0.5rem' }}
+            style={{
+              marginTop: '1.25rem',
+            }}
           >
-            {loadingBusca ? 'Consultando...' : 'Consultar disponibilidad'}
+            {loadingBusca
+              ? 'Consultando...'
+              : 'Consultar disponibilidad'}
           </button>
         </form>
       </div>
     );
   }
 
-  // ── Paso: Resultado ──────────────────────────────────────────────────────
+  // ---------------------------------------------------------------------------
+  // Resultado
+  // ---------------------------------------------------------------------------
+
   if (step === 'resultado') {
     const rec = busqueda?.recomendada;
     const noches = busqueda?.noches || 0;
 
+    const {
+      cantidadAdultos,
+      cantidadNinos,
+      camasRequeridas,
+      cantidadVisitantes,
+    } = obtenerDatosFormulario();
+
     return (
       <div>
-        <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#f0f0f0', marginBottom: '1.5rem', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+        <h2
+          style={{
+            fontSize: '1rem',
+            fontWeight: 700,
+            color: '#f0f0f0',
+            marginBottom: '1.5rem',
+            letterSpacing: '0.04em',
+            textTransform: 'uppercase',
+          }}
+        >
           Habitación Recomendada
         </h2>
 
-        {error && <div className="admin-error">{error}</div>}
+        {error && (
+          <div className="admin-error">
+            {error}
+          </div>
+        )}
 
         {!rec ? (
-          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem', padding: '2rem 0' }}>
-            No hay habitaciones disponibles para los criterios seleccionados.
+          <div
+            style={{
+              color: 'rgba(255,255,255,0.4)',
+              fontSize: '0.9rem',
+              padding: '2rem 0',
+            }}
+          >
+            No hay habitaciones disponibles para
+            los criterios seleccionados.
+
             <br />
+
             <button
               className="btn-cancel"
-              style={{ marginTop: '1rem' }}
+              style={{
+                marginTop: '1rem',
+              }}
               onClick={handleNueva}
             >
               Volver a buscar
@@ -263,60 +475,174 @@ function ReservarSection() {
           </div>
         ) : (
           <>
-            {/* Tarjeta de la habitación recomendada */}
-            <div style={{
-              background: '#111',
-              border: '1px solid #1e1e1e',
-              borderRadius: 12,
-              padding: '1.5rem',
-              maxWidth: 540,
-              marginBottom: '1.25rem',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.12em', color: '#c9a84c', textTransform: 'uppercase' }}>
+            <div
+              style={{
+                background: '#111',
+                border: '1px solid #1e1e1e',
+                borderRadius: 12,
+                padding: '1.5rem',
+                maxWidth: 540,
+                marginBottom: '1.25rem',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '1rem',
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.12em',
+                    color: '#c9a84c',
+                    textTransform: 'uppercase',
+                  }}
+                >
                   Habitación Asignada
                 </span>
-                <span className={`estado-badge estado-${rec.estado}`}>{rec.estado}</span>
+
+                <span
+                  className={`estado-badge estado-${rec.estado}`}
+                >
+                  {rec.estado}
+                </span>
               </div>
 
-              <p style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f0f0f0', marginBottom: '0.25rem' }}>
-                Hab. {rec.numero_habitacion}{rec.nombre ? ` — ${rec.nombre}` : ''}
-              </p>
-              <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.45)', marginBottom: '1rem' }}>
-                {rec.tipo_nombre} · Piso {rec.piso} · Capacidad {rec.capacidad_maxima} personas
+              <p
+                style={{
+                  fontSize: '1.2rem',
+                  fontWeight: 700,
+                  color: '#f0f0f0',
+                  marginBottom: '0.25rem',
+                }}
+              >
+                Hab. {rec.numero_habitacion}
+                {rec.nombre
+                  ? ` — ${rec.nombre}`
+                  : ''}
               </p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.85rem' }}>
+              <p
+                style={{
+                  fontSize: '0.82rem',
+                  color:
+                    'rgba(255,255,255,0.45)',
+                  marginBottom: '1rem',
+                }}
+              >
+                {rec.tipo_nombre}
+                {' · '}
+                Piso {rec.piso}
+                {' · '}
+                Capacidad {rec.capacidad_maxima}
+                {' personas'}
+              </p>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns:
+                    '1fr 1fr',
+                  gap: '0.75rem',
+                  fontSize: '0.85rem',
+                }}
+              >
                 {[
-                  ['Entrada', formatFecha(form.fechaEntrada)],
-                  ['Salida', formatFecha(form.fechaSalida)],
-                  ['Noches', noches],
-                  ['Visitantes', busqueda.cantidadVisitantes],
-                  ['Precio/noche', formatMoneda(rec.precio_noche)],
-                  ['Total estimado', formatMoneda(parseFloat(rec.precio_noche) * noches)],
+                  [
+                    'Entrada',
+                    formatFecha(form.fechaEntrada),
+                  ],
+                  [
+                    'Salida',
+                    formatFecha(form.fechaSalida),
+                  ],
+                  [
+                    'Noches',
+                    noches,
+                  ],
+                  [
+                    'Adultos',
+                    cantidadAdultos,
+                  ],
+                  [
+                    'Niños',
+                    cantidadNinos,
+                  ],
+                  [
+                    'Visitantes',
+                    cantidadVisitantes,
+                  ],
+                  [
+                    'Camas requeridas',
+                    camasRequeridas,
+                  ],
+                  [
+                    'Camas habitación',
+                    rec.total_camas || 0,
+                  ],
+                  [
+                    'Precio/noche',
+                    formatMoneda(rec.precio_noche),
+                  ],
+                  [
+                    'Total estimado',
+                    formatMoneda(
+                      parseFloat(rec.precio_noche) *
+                      noches
+                    ),
+                  ],
                 ].map(([label, value]) => (
                   <div key={label}>
-                    <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.35)', marginBottom: '0.2rem' }}>{label}</p>
-                    <p style={{ color: '#f0f0f0', fontWeight: 600 }}>{value}</p>
+                    <p
+                      style={{
+                        fontSize: '0.7rem',
+                        color:
+                          'rgba(255,255,255,0.35)',
+                        marginBottom: '0.2rem',
+                      }}
+                    >
+                      {label}
+                    </p>
+
+                    <p
+                      style={{
+                        color: '#f0f0f0',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {value}
+                    </p>
                   </div>
                 ))}
               </div>
-
-              <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.25)', marginTop: '1rem' }}>
-                * El total se calcula por número de noches. No incluye servicios adicionales.
-              </p>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.6rem' }}>
+            <div
+              style={{
+                display: 'flex',
+                gap: '0.75rem',
+              }}
+            >
               <button
-                className="btn-save"
+                className="btn-new"
                 onClick={handleConfirmar}
                 disabled={loadingConf}
               >
-                {loadingConf ? 'Confirmando...' : 'Confirmar reservación'}
+                {loadingConf
+                  ? 'Confirmando...'
+                  : 'Confirmar reservación'}
               </button>
-              <button className="btn-cancel" onClick={handleNueva} disabled={loadingConf}>
-                Cancelar
+
+              <button
+                className="btn-cancel"
+                onClick={handleNueva}
+                disabled={loadingConf}
+              >
+                Volver
               </button>
             </div>
           </>
@@ -325,50 +651,130 @@ function ReservarSection() {
     );
   }
 
-  // ── Paso: Confirmado ─────────────────────────────────────────────────────
-  if (step === 'confirmado' && reservaCreada) {
-    const hab = reservaCreada.habitaciones?.[0];
-    const noches = hab?.cantidad_noches || calcularNoches(reservaCreada.fecha_entrada, reservaCreada.fecha_salida);
+  // ---------------------------------------------------------------------------
+  // Confirmada
+  // ---------------------------------------------------------------------------
+
+  if (step === 'confirmado') {
+    const habitacion =
+      reservaCreada?.habitaciones?.[0];
 
     return (
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-          <span style={{ fontSize: '1.5rem' }}></span>
-          <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#6be0a0', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-            Reservación Creada
-          </h2>
+        <div className="admin-success">
+          Reservación creada correctamente.
         </div>
 
-        <div style={{
-          background: '#111',
-          border: '1px solid #1e1e1e',
-          borderRadius: 12,
-          padding: '1.5rem',
-          maxWidth: 540,
-          marginBottom: '1.25rem',
-        }}>
+        <h2
+          style={{
+            fontSize: '1rem',
+            fontWeight: 700,
+            color: '#f0f0f0',
+            marginBottom: '1.5rem',
+            marginTop: '1.5rem',
+            letterSpacing: '0.04em',
+            textTransform: 'uppercase',
+          }}
+        >
+          Detalle de Reservación
+        </h2>
+
+        <div
+          style={{
+            background: '#111',
+            border: '1px solid #1e1e1e',
+            borderRadius: 12,
+            padding: '1.5rem',
+            maxWidth: 540,
+            marginBottom: '1.25rem',
+          }}
+        >
           {[
-            ['ID Reservación', `#${reservaCreada.id_reservacion}`],
-            ['Código', reservaCreada.codigo_reservacion],
-            ['Estado', null],
-            ['Habitación', hab ? `${hab.numero_habitacion}${hab.habitacion_nombre ? ` — ${hab.habitacion_nombre}` : ''}` : '—'],
-            ['Tipo', hab?.tipo_nombre || '—'],
-            ['Fecha entrada', formatFecha(reservaCreada.fecha_entrada)],
-            ['Fecha salida', formatFecha(reservaCreada.fecha_salida)],
-            ['Noches', noches],
-            ['Precio / noche', formatMoneda(hab?.precio_noche_aplicado)],
-            ['Total estimado', formatMoneda(hab ? parseFloat(hab.precio_noche_aplicado) * noches : reservaCreada.total)],
+            [
+              'Código',
+              reservaCreada?.codigo_reservacion,
+            ],
+            [
+              'Estado',
+              null,
+            ],
+            [
+              'Habitación',
+              habitacion
+                ? `Hab. ${habitacion.numero_habitacion}`
+                : '—',
+            ],
+            [
+              'Adultos',
+              reservaCreada?.cantidad_adultos,
+            ],
+            [
+              'Niños',
+              reservaCreada?.cantidad_ninos,
+            ],
+            [
+              'Visitantes',
+              reservaCreada?.cantidad_visitantes,
+            ],
+            [
+              'Camas requeridas',
+              reservaCreada?.camas_requeridas,
+            ],
+            [
+              'Subtotal',
+              formatMoneda(
+                reservaCreada?.subtotal
+              ),
+            ],
+            [
+              'Total',
+              formatMoneda(
+                reservaCreada?.total
+              ),
+            ],
           ].map(([label, value]) => (
-            <div key={label} className="profile-info-row" style={{ borderBottom: '1px solid #161616', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.35)' }}>{label}</span>
-              <span style={{ fontWeight: 600, color: '#f0f0f0' }}>
-                {label === 'Estado' ? <EstadoBadge estado={reservaCreada.estado} /> : value}
+            <div
+              key={label}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                borderBottom:
+                  '1px solid #161616',
+                padding: '0.45rem 0',
+                fontSize: '0.85rem',
+              }}
+            >
+              <span
+                style={{
+                  color:
+                    'rgba(255,255,255,0.35)',
+                }}
+              >
+                {label}
+              </span>
+
+              <span
+                style={{
+                  fontWeight: 600,
+                  color: '#f0f0f0',
+                }}
+              >
+                {label === 'Estado' ? (
+                  <EstadoBadge
+                    estado={reservaCreada?.estado}
+                  />
+                ) : (
+                  value
+                )}
               </span>
             </div>
           ))}
         </div>
 
-        <button className="btn-new" onClick={handleNueva}>
+        <button
+          className="btn-new"
+          onClick={handleNueva}
+        >
           Nueva reservación
         </button>
       </div>
