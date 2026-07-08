@@ -6,6 +6,7 @@ const habitacionRoutes = require('./habitacion.routes');
 const reservacionRoutes = require('./reservacion.routes');
 const servicioRoutes = require('./servicio.routes');
 const actividadRoutes = require('./actividad.routes');
+const paseRoutes = require('./pase.routes');
 
 const router = Router();
 
@@ -29,5 +30,8 @@ router.use('/servicios', servicioRoutes);
 
 // /api/actividades
 router.use('/actividades', actividadRoutes);
+
+// /api/pases
+router.use('/pases', paseRoutes);
 
 module.exports = router;
