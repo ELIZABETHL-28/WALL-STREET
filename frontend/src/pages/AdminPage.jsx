@@ -4,12 +4,14 @@ import { useAuth } from '../context/AuthContext';
 import HabitacionesSection   from './admin/HabitacionesSection';
 import ReservacionesSection  from './admin/ReservacionesSection';
 import ServiciosSection      from './admin/ServiciosSection';
+import ActividadesSection     from './admin/ActividadesSection';
 import '../styles/admin.css';
 
 const SECCIONES = [
   { id: 'habitaciones',  label: 'Habitaciones',  icono: '🏨' },
   { id: 'reservaciones', label: 'Reservaciones', icono: '📋' },
   { id: 'servicios',     label: 'Servicios',     icono: '🛎️' },
+  { id: 'actividades',   label: 'Actividades',   icono: '🎟️' },
 ];
 
 export default function AdminPage() {
@@ -76,6 +78,7 @@ export default function AdminPage() {
           {seccion === 'habitaciones'  && <HabitacionesSection />}
           {seccion === 'reservaciones' && <ReservacionesSection />}
           {seccion === 'servicios'     && <ServiciosSection />}
+          {seccion === 'actividades'   && <ActividadesSection />}
         </main>
       </div>
     </div>

@@ -20,6 +20,12 @@ import {
   agregarServicioReservacion,
   quitarServicioReservacion,
 } from '../services/servicio.service';
+import {
+  getActividadesCliente,
+  inscribirseActividad,
+  getMisInscripciones,
+  cancelarInscripcion,
+} from '../services/actividad.service';
 import '../styles/auth.css';
 import '../styles/admin.css';
 
@@ -797,12 +803,253 @@ function ServiciosClienteSection() {
   );
 }
 
+
+// ── Sección: Actividades para Cliente ─────────────────────────────────────────
+
+function ActividadesClienteSection() {
+  const [actividades, setActividades] = useState([]);
+  const [inscripciones, setInscripciones] = useState([]);
+  const [cantidades, setCantidades] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [procesando, setProcesando] = useState(null);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const cargar = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const [actData, insData] = await Promise.all([
+        getActividadesCliente(),
+        getMisInscripciones(),
+      ]);
+      setActividades(actData.actividades || []);
+      setInscripciones(insData.inscripciones || []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    cargar();
+  }, []);
+
+  const flash = (mensaje) => {
+    setSuccess(mensaje);
+    window.setTimeout(() => setSuccess(''), 3000);
+  };
+
+  const inscribirse = async (idActividad) => {
+    const cantidad = Number(cantidades[idActividad] || 1);
+    setProcesando(`act-${idActividad}`);
+    setError('');
+    try {
+      await inscribirseActividad(idActividad, cantidad);
+      flash('Inscripción realizada correctamente.');
+      await cargar();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setProcesando(null);
+    }
+  };
+
+  const cancelar = async (idInscripcion) => {
+    if (!window.confirm('¿Cancelar esta inscripción?')) return;
+    setProcesando(`ins-${idInscripcion}`);
+    setError('');
+    try {
+      await cancelarInscripcion(idInscripcion);
+      flash('Inscripción cancelada.');
+      await cargar();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setProcesando(null);
+    }
+  };
+
+  const idsInscritos = new Set(
+    inscripciones
+      .filter((ins) => ins.estado === 'CONFIRMADA')
+      .map((ins) => Number(ins.id_actividad))
+  );
+
+  if (loading) {
+    return <p className="admin-loading">Cargando actividades...</p>;
+  }
+
+  return (
+    <div>
+      <div className="admin-section-header">
+        <h2 className="admin-section-title">Actividades del Hotel</h2>
+        <button className="btn-icon" onClick={cargar}>↻ Actualizar</button>
+      </div>
+
+      {error && <div className="admin-error">{error}</div>}
+      {success && <div className="admin-success">{success}</div>}
+
+      <h3 style={{
+        color: '#f0f0f0',
+        fontSize: '.9rem',
+        textTransform: 'uppercase',
+        letterSpacing: '.06em',
+        marginBottom: '1rem',
+      }}>
+        Disponibles
+      </h3>
+
+      {actividades.length === 0 ? (
+        <p className="muted">No hay actividades disponibles.</p>
+      ) : (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '1rem',
+          marginBottom: '2.5rem',
+        }}>
+          {actividades.map((actividad) => {
+            const inscritos = Number(actividad.inscritos_actuales || 0);
+            const cupo = Number(actividad.cupo_maximo || 0);
+            const disponible = Math.max(0, cupo - inscritos);
+            const yaInscrito = idsInscritos.has(Number(actividad.id_actividad));
+
+            return (
+              <div
+                key={actividad.id_actividad}
+                style={{
+                  background: '#111',
+                  border: '1px solid #1e1e1e',
+                  borderRadius: 12,
+                  padding: '1.25rem',
+                }}
+              >
+                <p style={{
+                  color: '#c9a84c',
+                  fontSize: '.68rem',
+                  fontWeight: 700,
+                  letterSpacing: '.1em',
+                  textTransform: 'uppercase',
+                }}>
+                  {actividad.estado}
+                </p>
+                <h3 style={{ color: '#f0f0f0', margin: '.5rem 0' }}>
+                  {actividad.nombre}
+                </h3>
+                <p className="muted" style={{ fontSize: '.82rem' }}>
+                  {actividad.descripcion || 'Sin descripción'}
+                </p>
+
+                <div style={{ marginTop: '1rem', fontSize: '.82rem', color: 'rgba(255,255,255,.65)' }}>
+                  <p>📅 {formatFecha(actividad.fecha_actividad)}</p>
+                  <p>🕒 {String(actividad.hora_inicio || '').slice(0, 5)}</p>
+                  <p>📍 {actividad.ubicacion || 'Sin ubicación'}</p>
+                  <p>💳 {formatMoneda(actividad.precio)}</p>
+                  <p>👥 Cupo disponible: {disponible}</p>
+                </div>
+
+                {yaInscrito ? (
+                  <p style={{ color: '#6be0a0', fontWeight: 700, marginTop: '1rem' }}>
+                    Ya estás inscrito
+                  </p>
+                ) : (
+                  <div style={{ display: 'flex', gap: '.5rem', marginTop: '1rem' }}>
+                    <input
+                      type="number"
+                      min="1"
+                      max={Math.max(1, disponible)}
+                      value={cantidades[actividad.id_actividad] || 1}
+                      onChange={(event) =>
+                        setCantidades((actual) => ({
+                          ...actual,
+                          [actividad.id_actividad]: event.target.value,
+                        }))
+                      }
+                      style={{ maxWidth: 80 }}
+                    />
+                    <button
+                      className="btn-new"
+                      onClick={() => inscribirse(actividad.id_actividad)}
+                      disabled={
+                        disponible < 1 ||
+                        procesando === `act-${actividad.id_actividad}`
+                      }
+                    >
+                      {procesando === `act-${actividad.id_actividad}`
+                        ? 'Inscribiendo...'
+                        : 'Inscribirme'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <h3 style={{
+        color: '#f0f0f0',
+        fontSize: '.9rem',
+        textTransform: 'uppercase',
+        letterSpacing: '.06em',
+        marginBottom: '1rem',
+      }}>
+        Mis Inscripciones
+      </h3>
+
+      {inscripciones.length === 0 ? (
+        <p className="muted">Todavía no tienes inscripciones.</p>
+      ) : (
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Actividad</th>
+                <th>Fecha</th>
+                <th>Personas</th>
+                <th>Total</th>
+                <th>Estado</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {inscripciones.map((inscripcion) => (
+                <tr key={inscripcion.id_inscripcion}>
+                  <td>{inscripcion.actividad_nombre}</td>
+                  <td className="muted">{formatFecha(inscripcion.fecha_actividad)}</td>
+                  <td>{inscripcion.cantidad_personas}</td>
+                  <td>{formatMoneda(inscripcion.precio_total)}</td>
+                  <td>{inscripcion.estado}</td>
+                  <td>
+                    {inscripcion.estado === 'CONFIRMADA' && (
+                      <button
+                        className="btn-icon danger"
+                        onClick={() => cancelar(inscripcion.id_inscripcion)}
+                        disabled={procesando === `ins-${inscripcion.id_inscripcion}`}
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Página principal ──────────────────────────────────────────────────────────
 
 const SECCIONES_CLIENTE = [
   { id: 'reservar',    label: 'Reservar habitación', icono: '🛏️' },
   { id: 'misreservas', label: 'Mis reservaciones',   icono: '📋' },
   { id: 'servicios',   label: 'Servicios Adicionales', icono: '🛎️' },
+  { id: 'actividades', label: 'Actividades', icono: '🎟️' },
 ];
 
 export default function ReservasPage() {
@@ -878,6 +1125,7 @@ export default function ReservasPage() {
           {seccion === 'reservar'    && <ReservarSection />}
           {seccion === 'misreservas' && <MisReservacionesSection />}
           {seccion === 'servicios'   && <ServiciosClienteSection />}
+          {seccion === 'actividades' && <ActividadesClienteSection />}
         </main>
       </div>
     </div>
