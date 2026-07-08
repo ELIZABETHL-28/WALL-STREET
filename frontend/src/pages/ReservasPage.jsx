@@ -26,6 +26,11 @@ import {
   getMisInscripciones,
   cancelarInscripcion,
 } from '../services/actividad.service';
+import {
+  getTiposPaseCliente,
+  adquirirPase,
+  getMisPases,
+} from '../services/pase.service';
 import '../styles/auth.css';
 import '../styles/admin.css';
 
@@ -60,11 +65,11 @@ function formatMoneda(val) {
 // ── Badges de estado ──────────────────────────────────────────────────────────
 
 const ESTADO_COLORS = {
-  PENDIENTE:  { bg: 'rgba(201,168,76,.12)',  color: '#c9a84c',  border: 'rgba(201,168,76,.3)'  },
-  CONFIRMADA: { bg: 'rgba(80,200,120,.12)',   color: '#6be0a0',  border: 'rgba(80,200,120,.25)' },
-  CHECK_IN:   { bg: 'rgba(100,180,255,.12)',  color: '#80c0ff',  border: 'rgba(100,180,255,.25)'},
-  CHECK_OUT:  { bg: 'rgba(200,160,255,.12)',  color: '#c8a0ff',  border: 'rgba(200,160,255,.25)'},
-  CANCELADA:  { bg: 'rgba(255,80,80,.12)',    color: '#f08080',  border: 'rgba(255,80,80,.25)'  },
+  PENDIENTE: { bg: 'rgba(201,168,76,.12)', color: '#c9a84c', border: 'rgba(201,168,76,.3)' },
+  CONFIRMADA: { bg: 'rgba(80,200,120,.12)', color: '#6be0a0', border: 'rgba(80,200,120,.25)' },
+  CHECK_IN: { bg: 'rgba(100,180,255,.12)', color: '#80c0ff', border: 'rgba(100,180,255,.25)' },
+  CHECK_OUT: { bg: 'rgba(200,160,255,.12)', color: '#c8a0ff', border: 'rgba(200,160,255,.25)' },
+  CANCELADA: { bg: 'rgba(255,80,80,.12)', color: '#f08080', border: 'rgba(255,80,80,.25)' },
 };
 
 function EstadoBadge({ estado }) {
@@ -91,13 +96,13 @@ function EstadoBadge({ estado }) {
 function ReservarSection() {
   const [step, setStep] = useState('buscar'); // buscar | resultado | confirmado
   const [form, setForm] = useState({
-    fechaEntrada:       hoy(),
-    fechaSalida:        manana(),
+    fechaEntrada: hoy(),
+    fechaSalida: manana(),
     cantidadVisitantes: 1,
   });
-  const [busqueda, setBusqueda]         = useState(null);
+  const [busqueda, setBusqueda] = useState(null);
   const [loadingBusca, setLoadingBusca] = useState(false);
-  const [loadingConf, setLoadingConf]   = useState(false);
+  const [loadingConf, setLoadingConf] = useState(false);
   const [reservaCreada, setReservaCreada] = useState(null);
   const [error, setError] = useState('');
 
@@ -142,10 +147,10 @@ function ReservarSection() {
     setLoadingConf(true);
     try {
       const data = await crearReservacion({
-        fechaEntrada:    form.fechaEntrada,
-        fechaSalida:     form.fechaSalida,
+        fechaEntrada: form.fechaEntrada,
+        fechaSalida: form.fechaSalida,
         cantidadAdultos: parseInt(form.cantidadVisitantes, 10),
-        cantidadNinos:   0,
+        cantidadNinos: 0,
       });
       setReservaCreada(data.reservacion);
       setStep('confirmado');
@@ -283,10 +288,10 @@ function ReservarSection() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.85rem' }}>
                 {[
-                  ['Entrada',      formatFecha(form.fechaEntrada)],
-                  ['Salida',       formatFecha(form.fechaSalida)],
-                  ['Noches',       noches],
-                  ['Visitantes',   busqueda.cantidadVisitantes],
+                  ['Entrada', formatFecha(form.fechaEntrada)],
+                  ['Salida', formatFecha(form.fechaSalida)],
+                  ['Noches', noches],
+                  ['Visitantes', busqueda.cantidadVisitantes],
                   ['Precio/noche', formatMoneda(rec.precio_noche)],
                   ['Total estimado', formatMoneda(parseFloat(rec.precio_noche) * noches)],
                 ].map(([label, value]) => (
@@ -322,13 +327,13 @@ function ReservarSection() {
 
   // ── Paso: Confirmado ─────────────────────────────────────────────────────
   if (step === 'confirmado' && reservaCreada) {
-    const hab    = reservaCreada.habitaciones?.[0];
+    const hab = reservaCreada.habitaciones?.[0];
     const noches = hab?.cantidad_noches || calcularNoches(reservaCreada.fecha_entrada, reservaCreada.fecha_salida);
 
     return (
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-          <span style={{ fontSize: '1.5rem' }}>✅</span>
+          <span style={{ fontSize: '1.5rem' }}></span>
           <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#6be0a0', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
             Reservación Creada
           </h2>
@@ -343,16 +348,16 @@ function ReservarSection() {
           marginBottom: '1.25rem',
         }}>
           {[
-            ['ID Reservación',       `#${reservaCreada.id_reservacion}`],
-            ['Código',               reservaCreada.codigo_reservacion],
-            ['Estado',               null],
-            ['Habitación',           hab ? `${hab.numero_habitacion}${hab.habitacion_nombre ? ` — ${hab.habitacion_nombre}` : ''}` : '—'],
-            ['Tipo',                 hab?.tipo_nombre || '—'],
-            ['Fecha entrada',        formatFecha(reservaCreada.fecha_entrada)],
-            ['Fecha salida',         formatFecha(reservaCreada.fecha_salida)],
-            ['Noches',               noches],
-            ['Precio / noche',       formatMoneda(hab?.precio_noche_aplicado)],
-            ['Total estimado',       formatMoneda(hab ? parseFloat(hab.precio_noche_aplicado) * noches : reservaCreada.total)],
+            ['ID Reservación', `#${reservaCreada.id_reservacion}`],
+            ['Código', reservaCreada.codigo_reservacion],
+            ['Estado', null],
+            ['Habitación', hab ? `${hab.numero_habitacion}${hab.habitacion_nombre ? ` — ${hab.habitacion_nombre}` : ''}` : '—'],
+            ['Tipo', hab?.tipo_nombre || '—'],
+            ['Fecha entrada', formatFecha(reservaCreada.fecha_entrada)],
+            ['Fecha salida', formatFecha(reservaCreada.fecha_salida)],
+            ['Noches', noches],
+            ['Precio / noche', formatMoneda(hab?.precio_noche_aplicado)],
+            ['Total estimado', formatMoneda(hab ? parseFloat(hab.precio_noche_aplicado) * noches : reservaCreada.total)],
           ].map(([label, value]) => (
             <div key={label} className="profile-info-row" style={{ borderBottom: '1px solid #161616', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
               <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.35)' }}>{label}</span>
@@ -377,12 +382,12 @@ function ReservarSection() {
 
 function MisReservacionesSection() {
   const [reservaciones, setReservaciones] = useState(null);
-  const [loading, setLoading]             = useState(false);
-  const [error, setError]                 = useState('');
-  const [detalle, setDetalle]             = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [detalle, setDetalle] = useState(null);
   const [loadingDetalle, setLoadingDetalle] = useState(false);
-  const [cancelando, setCancelando]       = useState(false);
-  const [msgCancelada, setMsgCancelada]   = useState('');
+  const [cancelando, setCancelando] = useState(false);
+  const [msgCancelada, setMsgCancelada] = useState('');
 
   const cargar = async () => {
     setLoading(true);
@@ -434,10 +439,10 @@ function MisReservacionesSection() {
   };
 
   if (loading) return <p className="admin-loading">Cargando reservaciones...</p>;
-  if (error)   return <div className="admin-error">{error}</div>;
+  if (error) return <div className="admin-error">{error}</div>;
 
   if (detalle) {
-    const hab    = detalle.habitaciones?.[0];
+    const hab = detalle.habitaciones?.[0];
     const noches = hab?.cantidad_noches || calcularNoches(detalle.fecha_entrada, detalle.fecha_salida);
     const puedeCancel = ['PENDIENTE', 'CONFIRMADA'].includes(detalle.estado);
 
@@ -456,17 +461,17 @@ function MisReservacionesSection() {
 
         <div style={{ background: '#111', border: '1px solid #1e1e1e', borderRadius: 12, padding: '1.5rem', maxWidth: 540, marginBottom: '1.25rem' }}>
           {[
-            ['Código',         detalle.codigo_reservacion],
-            ['Estado',         null],
-            ['Habitación',     hab ? `${hab.numero_habitacion}${hab.habitacion_nombre ? ` — ${hab.habitacion_nombre}` : ''}` : '—'],
-            ['Tipo',           hab?.tipo_nombre || '—'],
-            ['Fecha entrada',  formatFecha(detalle.fecha_entrada)],
-            ['Fecha salida',   formatFecha(detalle.fecha_salida)],
-            ['Noches',         noches],
-            ['Visitantes',     detalle.cantidad_visitantes],
-            ['Precio/noche',   formatMoneda(hab?.precio_noche_aplicado)],
-            ['Total',          formatMoneda(detalle.total)],
-            ['Creada',         formatFecha(detalle.fecha_creacion)],
+            ['Código', detalle.codigo_reservacion],
+            ['Estado', null],
+            ['Habitación', hab ? `${hab.numero_habitacion}${hab.habitacion_nombre ? ` — ${hab.habitacion_nombre}` : ''}` : '—'],
+            ['Tipo', hab?.tipo_nombre || '—'],
+            ['Fecha entrada', formatFecha(detalle.fecha_entrada)],
+            ['Fecha salida', formatFecha(detalle.fecha_salida)],
+            ['Noches', noches],
+            ['Visitantes', detalle.cantidad_visitantes],
+            ['Precio/noche', formatMoneda(hab?.precio_noche_aplicado)],
+            ['Total', formatMoneda(detalle.total)],
+            ['Creada', formatFecha(detalle.fecha_creacion)],
           ].map(([label, value]) => (
             <div key={label} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #161616', padding: '0.45rem 0', fontSize: '0.85rem' }}>
               <span style={{ color: 'rgba(255,255,255,0.35)' }}>{label}</span>
@@ -484,7 +489,7 @@ function MisReservacionesSection() {
             </p>
             {detalle.visitantes.map((v) => (
               <div key={v.id_visitante} style={{ fontSize: '0.85rem', borderBottom: '1px solid #161616', padding: '0.4rem 0', color: 'rgba(255,255,255,0.7)' }}>
-                {v.es_titular ? '👤 ' : ''}{v.nombres} {v.apellidos} · {v.tipo_documento} {v.numero_documento || ''}
+                {v.es_titular ? ' ' : ''}{v.nombres} {v.apellidos} · {v.tipo_documento} {v.numero_documento || ''}
               </div>
             ))}
           </div>
@@ -508,7 +513,7 @@ function MisReservacionesSection() {
     <div>
       <div className="admin-section-header">
         <h2 className="admin-section-title">Mis Reservaciones</h2>
-        <button className="btn-icon" onClick={cargar}>↻ Actualizar</button>
+        <button className="btn-icon" onClick={cargar}>Actualizar Actualizar</button>
       </div>
 
       {!reservaciones || reservaciones.length === 0 ? (
@@ -564,12 +569,12 @@ function MisReservacionesSection() {
 function ServiciosClienteSection() {
   const [reservaciones, setReservaciones] = useState([]);
   const [selectedResId, setSelectedResId] = useState('');
-  const [catalog, setCatalog]             = useState([]);
-  const [associated, setAssociated]       = useState([]);
-  const [loading, setLoading]             = useState(false);
+  const [catalog, setCatalog] = useState([]);
+  const [associated, setAssociated] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [loadingServices, setLoadingServices] = useState(false);
-  const [error, setError]                 = useState('');
-  const [success, setSuccess]             = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const cargarReservaciones = async () => {
     setLoading(true);
@@ -667,7 +672,7 @@ function ServiciosClienteSection() {
         <h2 className="admin-section-title">Servicios Adicionales</h2>
       </div>
 
-      {error   && <div className="admin-error">{error}</div>}
+      {error && <div className="admin-error">{error}</div>}
       {success && <div className="admin-success">{success}</div>}
 
       {reservaciones.length === 0 ? (
@@ -699,7 +704,7 @@ function ServiciosClienteSection() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-            
+
             {/* Catálogo de Servicios Disponibles */}
             <div>
               <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f0f0f0', marginBottom: '1rem', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
@@ -779,7 +784,7 @@ function ServiciosClienteSection() {
                               onClick={() => handleQuitarServicio(asoc.id_reservacion_servicio)}
                               title="Quitar de la reservación"
                             >
-                              🗑️
+
                             </button>
                           </td>
                         </tr>
@@ -885,7 +890,7 @@ function ActividadesClienteSection() {
     <div>
       <div className="admin-section-header">
         <h2 className="admin-section-title">Actividades del Hotel</h2>
-        <button className="btn-icon" onClick={cargar}>↻ Actualizar</button>
+        <button className="btn-icon" onClick={cargar}>Actualizar Actualizar</button>
       </div>
 
       {error && <div className="admin-error">{error}</div>}
@@ -943,11 +948,11 @@ function ActividadesClienteSection() {
                 </p>
 
                 <div style={{ marginTop: '1rem', fontSize: '.82rem', color: 'rgba(255,255,255,.65)' }}>
-                  <p>📅 {formatFecha(actividad.fecha_actividad)}</p>
-                  <p>🕒 {String(actividad.hora_inicio || '').slice(0, 5)}</p>
-                  <p>📍 {actividad.ubicacion || 'Sin ubicación'}</p>
-                  <p>💳 {formatMoneda(actividad.precio)}</p>
-                  <p>👥 Cupo disponible: {disponible}</p>
+                  <p> {formatFecha(actividad.fecha_actividad)}</p>
+                  <p> {String(actividad.hora_inicio || '').slice(0, 5)}</p>
+                  <p> {actividad.ubicacion || 'Sin ubicación'}</p>
+                  <p> {formatMoneda(actividad.precio)}</p>
+                  <p> Cupo disponible: {disponible}</p>
                 </div>
 
                 {yaInscrito ? (
@@ -1043,19 +1048,230 @@ function ActividadesClienteSection() {
   );
 }
 
+
+// ── Sección: Pases de Día para Cliente ────────────────────────────────────────
+
+function PasesClienteSection() {
+  const [tipos, setTipos] = useState([]);
+  const [misPases, setMisPases] = useState([]);
+  const [fechaUso, setFechaUso] = useState(hoy());
+  const [cantidades, setCantidades] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [procesando, setProcesando] = useState(null);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const cargar = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const [tiposData, pasesData] = await Promise.all([
+        getTiposPaseCliente(),
+        getMisPases(),
+      ]);
+      setTipos(tiposData.tipos || []);
+      setMisPases(pasesData.pases || []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    cargar();
+  }, []);
+
+  const flash = (mensaje) => {
+    setSuccess(mensaje);
+    window.setTimeout(() => setSuccess(''), 3000);
+  };
+
+  const comprar = async (tipo) => {
+    const cantidad = Number(cantidades[tipo.id_tipo_pase] || 1);
+
+    setProcesando(tipo.id_tipo_pase);
+    setError('');
+
+    try {
+      await adquirirPase({
+        idTipoPase: tipo.id_tipo_pase,
+        fechaUso,
+        cantidadPersonas: cantidad,
+      });
+
+      flash('Pase adquirido correctamente.');
+      await cargar();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setProcesando(null);
+    }
+  };
+
+  if (loading) {
+    return <p className="admin-loading">Cargando pases...</p>;
+  }
+
+  return (
+    <div>
+      <div className="admin-section-header">
+        <h2 className="admin-section-title">Pases de Día</h2>
+        <button className="btn-icon" onClick={cargar}>Actualizar Actualizar</button>
+      </div>
+
+      {error && <div className="admin-error">{error}</div>}
+      {success && <div className="admin-success">{success}</div>}
+
+      <div className="form-field" style={{ maxWidth: 320, marginBottom: '1.5rem' }}>
+        <label htmlFor="fecha-uso-pase">Fecha de uso</label>
+        <input
+          id="fecha-uso-pase"
+          type="date"
+          min={hoy()}
+          value={fechaUso}
+          onChange={(e) => setFechaUso(e.target.value)}
+        />
+      </div>
+
+      <h3 style={{ color: '#f0f0f0', marginBottom: '1rem' }}>
+        Pases disponibles
+      </h3>
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gap: '1rem',
+        marginBottom: '2.5rem',
+      }}>
+        {tipos.map((tipo) => (
+          <div
+            key={tipo.id_tipo_pase}
+            style={{
+              background: '#111',
+              border: '1px solid #1e1e1e',
+              borderRadius: 12,
+              padding: '1.25rem',
+            }}
+          >
+            <p style={{
+              color: '#c9a84c',
+              fontSize: '.68rem',
+              fontWeight: 700,
+              letterSpacing: '.1em',
+              textTransform: 'uppercase',
+            }}>
+              {tipo.estado}
+            </p>
+
+            <h3 style={{ color: '#f0f0f0', margin: '.5rem 0' }}>
+              {tipo.nombre}
+            </h3>
+
+            <p className="muted" style={{ fontSize: '.82rem' }}>
+              {tipo.descripcion || 'Sin descripción'}
+            </p>
+
+            <p style={{
+              color: '#c9a84c',
+              fontWeight: 700,
+              fontSize: '1.1rem',
+              marginTop: '1rem',
+            }}>
+              {formatMoneda(tipo.precio)}
+            </p>
+
+            <p className="muted" style={{ fontSize: '.8rem', marginTop: '.5rem' }}>
+              Máximo {tipo.cantidad_maxima_personas} personas
+            </p>
+
+            <p className="muted" style={{ fontSize: '.8rem', marginTop: '.5rem' }}>
+              Incluye: {tipo.servicios_incluidos || 'Sin servicios especificados'}
+            </p>
+
+            <div style={{ display: 'flex', gap: '.5rem', marginTop: '1rem' }}>
+              <input
+                type="number"
+                min="1"
+                max={tipo.cantidad_maxima_personas}
+                value={cantidades[tipo.id_tipo_pase] || 1}
+                onChange={(e) =>
+                  setCantidades((actual) => ({
+                    ...actual,
+                    [tipo.id_tipo_pase]: e.target.value,
+                  }))
+                }
+                style={{ maxWidth: 80 }}
+              />
+
+              <button
+                className="btn-new"
+                onClick={() => comprar(tipo)}
+                disabled={procesando === tipo.id_tipo_pase}
+              >
+                {procesando === tipo.id_tipo_pase
+                  ? 'Adquiriendo...'
+                  : 'Adquirir pase'}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <h3 style={{ color: '#f0f0f0', marginBottom: '1rem' }}>
+        Mis Pases
+      </h3>
+
+      {misPases.length === 0 ? (
+        <p className="muted">Todavía no has adquirido pases.</p>
+      ) : (
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Tipo</th>
+                <th>Fecha de uso</th>
+                <th>Personas</th>
+                <th>Precio</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {misPases.map((pase) => (
+                <tr key={pase.id_pase_cliente}>
+                  <td style={{ fontWeight: 700, color: '#c9a84c' }}>
+                    {pase.codigo_pase}
+                  </td>
+                  <td>{pase.tipo_pase_nombre}</td>
+                  <td className="muted">{formatFecha(pase.fecha_uso)}</td>
+                  <td>{pase.cantidad_personas}</td>
+                  <td>{formatMoneda(pase.precio_aplicado)}</td>
+                  <td>{pase.estado}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Página principal ──────────────────────────────────────────────────────────
 
 const SECCIONES_CLIENTE = [
-  { id: 'reservar',    label: 'Reservar habitación', icono: '🛏️' },
-  { id: 'misreservas', label: 'Mis reservaciones',   icono: '📋' },
-  { id: 'servicios',   label: 'Servicios Adicionales', icono: '🛎️' },
-  { id: 'actividades', label: 'Actividades', icono: '🎟️' },
+  { id: 'reservar', label: 'Reservar habitación', icono: '🛏️' },
+  { id: 'misreservas', label: 'Mis reservaciones' },
+  { id: 'servicios', label: 'Servicios Adicionales' },
+  { id: 'actividades', label: 'Actividades' },
+  { id: 'pases', label: 'Pases de Día' },
 ];
 
 export default function ReservasPage() {
   const { systemUser, logout } = useAuth();
-  const navigate               = useNavigate();
-  const [seccion, setSeccion]  = useState('reservar');
+  const navigate = useNavigate();
+  const [seccion, setSeccion] = useState('reservar');
 
   const handleLogout = async () => {
     await logout();
@@ -1076,7 +1292,6 @@ export default function ReservasPage() {
                 className="admin-nav-item"
                 onClick={() => navigate('/perfil')}
               >
-                <span className="admin-nav-icon">👤</span>
                 Mi perfil
               </button>
             </li>
@@ -1086,7 +1301,6 @@ export default function ReservasPage() {
                   className={`admin-nav-item ${seccion === s.id ? 'active' : ''}`}
                   onClick={() => setSeccion(s.id)}
                 >
-                  <span className="admin-nav-icon">{s.icono}</span>
                   {s.label}
                 </button>
               </li>
@@ -1122,10 +1336,11 @@ export default function ReservasPage() {
         </header>
 
         <main className="admin-main">
-          {seccion === 'reservar'    && <ReservarSection />}
+          {seccion === 'reservar' && <ReservarSection />}
           {seccion === 'misreservas' && <MisReservacionesSection />}
-          {seccion === 'servicios'   && <ServiciosClienteSection />}
+          {seccion === 'servicios' && <ServiciosClienteSection />}
           {seccion === 'actividades' && <ActividadesClienteSection />}
+          {seccion === 'pases' && <PasesClienteSection />}
         </main>
       </div>
     </div>
