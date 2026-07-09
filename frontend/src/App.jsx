@@ -8,6 +8,7 @@ import AuthCallbackPage from './pages/auth/AuthCallbackPage';
 import ProfilePage      from './pages/ProfilePage';
 import AdminPage        from './pages/AdminPage';
 import ReservasPage     from './pages/ReservasPage';
+import HomePage          from './pages/HomePage';
 
 export default function App() {
   return (
@@ -15,7 +16,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           {/* Redirección raíz */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/" element={<HomePage />} />
 
           {/* Autenticación */}
           <Route path="/login"         element={<LoginPage />} />

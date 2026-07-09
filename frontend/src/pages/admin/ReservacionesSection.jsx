@@ -117,7 +117,7 @@ function DetalleModal({ id, onClose, onEstadoCambiado }) {
           <p className="modal-title" style={{ margin: 0 }}>
             Reservación #{id}
           </p>
-          <button className="btn-cancel" onClick={onClose} aria-label="Cerrar">✕</button>
+          <button className="btn-cancel" onClick={onClose} aria-label="Cerrar">Cerrar</button>
         </div>
 
         {loading && <p className="admin-loading">Cargando...</p>}
@@ -146,9 +146,9 @@ function DetalleModal({ id, onClose, onEstadoCambiado }) {
                 ['Creada',         formatFecha(reservacion.fecha_creacion)],
                 ['Actualizada',    formatFecha(reservacion.ultima_actualizacion)],
               ].map(([label, value]) => (
-                <div key={label} style={{ borderBottom: '1px solid #161616', paddingBottom: '0.4rem' }}>
-                  <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', marginBottom: '0.15rem' }}>{label}</p>
-                  <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f0f0f0' }}>
+                <div key={label} style={{ borderBottom: '1px solid #edf0f2', paddingBottom: '0.4rem' }}>
+                  <p style={{ fontSize: '0.7rem', color: '#7a8490', marginBottom: '0.15rem' }}>{label}</p>
+                  <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#17324d' }}>
                     {label === 'Estado' ? <EstadoBadge estado={reservacion.estado} /> : value}
                   </p>
                 </div>
@@ -158,12 +158,12 @@ function DetalleModal({ id, onClose, onEstadoCambiado }) {
             {/* Visitantes */}
             {reservacion.visitantes?.length > 0 && (
               <div style={{ marginBottom: '1.25rem' }}>
-                <p style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: '0.6rem' }}>
+                <p style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', color: '#7a8490', textTransform: 'uppercase', marginBottom: '0.6rem' }}>
                   Visitantes registrados
                 </p>
                 {reservacion.visitantes.map((v) => (
-                  <div key={v.id_visitante} style={{ fontSize: '0.82rem', borderBottom: '1px solid #161616', padding: '0.35rem 0', color: 'rgba(255,255,255,0.65)' }}>
-                    {v.es_titular ? '👤 ' : ''}{v.nombres} {v.apellidos} · {v.tipo_documento} {v.numero_documento || ''}
+                  <div key={v.id_visitante} style={{ fontSize: '0.82rem', borderBottom: '1px solid #edf0f2', padding: '0.35rem 0', color: '#526273' }}>
+                    {v.es_titular ? 'Titular: ' : ''}{v.nombres} {v.apellidos} · {v.tipo_documento} {v.numero_documento || ''}
                   </div>
                 ))}
               </div>
@@ -172,7 +172,7 @@ function DetalleModal({ id, onClose, onEstadoCambiado }) {
             {/* Cambiar estado */}
             {TRANSICIONES[reservacion.estado]?.length > 0 && (
               <div style={{ borderTop: '1px solid #1a1a1a', paddingTop: '1rem' }}>
-                <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.6rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                <p style={{ fontSize: '0.75rem', color: '#7a8490', marginBottom: '0.6rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                   Cambiar estado
                 </p>
                 <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -181,8 +181,8 @@ function DetalleModal({ id, onClose, onEstadoCambiado }) {
                     onChange={e => setNuevoEstado(e.target.value)}
                     disabled={cambiando}
                     style={{
-                      background: '#181818', border: '1px solid #242424', borderRadius: 7,
-                      color: '#f0f0f0', padding: '0.55rem 0.85rem', fontSize: '0.88rem',
+                      background: '#ffffff', border: '1px solid #d8dfe5', borderRadius: 7,
+                      color: '#17324d', padding: '0.55rem 0.85rem', fontSize: '0.88rem',
                       outline: 'none', cursor: 'pointer',
                     }}
                     aria-label="Seleccionar nuevo estado"
@@ -253,7 +253,7 @@ export default function ReservacionesSection() {
             onChange={e => setFiltroEstado(e.target.value)}
             aria-label="Filtrar por estado"
             style={{
-              background: '#181818', border: '1px solid #242424', borderRadius: 7,
+              background: '#ffffff', border: '1px solid #d8dfe5', borderRadius: 7,
               color: filtroEstado ? '#f0f0f0' : 'rgba(255,255,255,0.35)',
               padding: '0.45rem 0.75rem', fontSize: '0.82rem',
               outline: 'none', cursor: 'pointer',
@@ -269,7 +269,7 @@ export default function ReservacionesSection() {
             onChange={e => setFiltroDesde(e.target.value)}
             aria-label="Fecha desde"
             style={{
-              background: '#181818', border: '1px solid #242424', borderRadius: 7,
+              background: '#ffffff', border: '1px solid #d8dfe5', borderRadius: 7,
               color: filtroFechaDesde ? '#f0f0f0' : 'rgba(255,255,255,0.35)',
               padding: '0.45rem 0.75rem', fontSize: '0.82rem', outline: 'none',
             }}
@@ -281,7 +281,7 @@ export default function ReservacionesSection() {
             onChange={e => setFiltroHasta(e.target.value)}
             aria-label="Fecha hasta"
             style={{
-              background: '#181818', border: '1px solid #242424', borderRadius: 7,
+              background: '#ffffff', border: '1px solid #d8dfe5', borderRadius: 7,
               color: filtroFechaHasta ? '#f0f0f0' : 'rgba(255,255,255,0.35)',
               padding: '0.45rem 0.75rem', fontSize: '0.82rem', outline: 'none',
             }}
@@ -298,7 +298,7 @@ export default function ReservacionesSection() {
       {/* ── Tabla ─────────────────────────────────────────────── */}
       {!loading && (
         reservaciones.length === 0 ? (
-          <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.88rem', padding: '2rem 0' }}>
+          <p style={{ color: '#7a8490', fontSize: '0.88rem', padding: '2rem 0' }}>
             No hay reservaciones que coincidan con los filtros.
           </p>
         ) : (

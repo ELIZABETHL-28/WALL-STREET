@@ -4,6 +4,7 @@
  * La identidad del cliente proviene SOLO de req.user — nunca del body.
  */
 const svc = require('../services/pase.service');
+const { registrarAuditoria } = require('../services/auditoria.service');
 
 const ESTADOS_TIPO_PASE = ['ACTIVO', 'INACTIVO'];
 
@@ -229,6 +230,7 @@ async function adquirirPase(req, res, next) {
       cantidadPersonas: cantPersonas,
     });
 
+    void registrarAuditoria({ idUsuario: req.user.idUsuario, rol: req.user.rol, accion: 'ADQUIRIR_PASE', modulo: 'PASES', entidadId: pase.id_pase_cliente, detalle: { codigo: pase.codigo_pase, fechaUso } });
     return res.status(201).json({ success: true, pase });
   } catch (err) { return manejarError(err, res, next); }
 }

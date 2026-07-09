@@ -96,7 +96,10 @@ export default function RegisterPage() {
 
       {/* Panel de formulario */}
       <div className="auth-form-panel">
-        <p className="auth-logo">Hotel Wall Street</p>
+        <Link to="/" className="auth-logo-lockup brand-link">
+          <span className="auth-logo-mark" aria-hidden="true">W</span>
+          <p className="auth-logo">Hotel Wall Street</p>
+        </Link>
 
         <h2 className="auth-title">Crear cuenta</h2>
         <p className="auth-subtitle">Completa los datos para registrarte</p>

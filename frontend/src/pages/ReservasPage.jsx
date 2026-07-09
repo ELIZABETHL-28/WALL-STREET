@@ -1,12 +1,13 @@
 /**
  * ReservasPage.jsx
  * Módulo de Reservaciones para CLIENTE.
- * Navegación interna: Mi perfil | Reservar habitación | Mis reservaciones
  */
+
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import supabase from '../services/supabase';
+import serviceLaundry from '../assets/hotel/lava.jpg';
+
 import {
   consultarDisponibilidad,
   crearReservacion,
@@ -14,25 +15,50 @@ import {
   getMiReservacion,
   cancelarReservacion,
 } from '../services/reservacion.service';
+
 import {
   getServiciosCliente,
   getServiciosReservacion,
   agregarServicioReservacion,
   quitarServicioReservacion,
 } from '../services/servicio.service';
+
 import {
   getActividadesCliente,
   inscribirseActividad,
   getMisInscripciones,
   cancelarInscripcion,
 } from '../services/actividad.service';
+
 import {
   getTiposPaseCliente,
   adquirirPase,
   getMisPases,
 } from '../services/pase.service';
+
 import '../styles/auth.css';
 import '../styles/admin.css';
+
+import HotelIcon from '../components/HotelIcon';
+import CodigosAccesoSection from './client/CodigosAccesoSection';
+import CalificacionesSection from './client/CalificacionesSection';
+
+import roomStandard from '../assets/hotel/room_standard.jpg';
+import roomDouble from '../assets/hotel/room_double.jpg';
+import roomExecutive from '../assets/hotel/room_executive.jpg';
+import roomFamily from '../assets/hotel/room_family.jpg';
+import roomPresidential from '../assets/hotel/suite_presidential.jpg';
+
+import activityTour from '../assets/hotel/lobby.jpg';
+import activityWine from '../assets/hotel/wine.jpg';
+import activityNetworking from '../assets/hotel/terrace.jpg';
+
+import serviceSpa from '../assets/hotel/spa.jpg';
+import serviceLobby from '../assets/hotel/lobby.jpg';
+import serviceRoom from '../assets/hotel/room_standard.jpg';
+import serviceFacade from '../assets/hotel/facade.jpg';
+import serviceBreakfast from '../assets/hotel/break.jpg';
+import serviceParking from '../assets/hotel/par.jpg';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -53,39 +79,164 @@ function formatFecha(iso) {
 
 function calcularNoches(entrada, salida) {
   if (!entrada || !salida) return 0;
+
   const ms = new Date(salida) - new Date(entrada);
-  return Math.max(0, Math.round(ms / (1000 * 60 * 60 * 24)));
+
+  return Math.max(
+    0,
+    Math.round(ms / (1000 * 60 * 60 * 24))
+  );
 }
 
 function formatMoneda(val) {
-  if (val === null || val === undefined) return 'Q 0.00';
+  if (val === null || val === undefined) {
+    return 'Q 0.00';
+  }
+
   return `Q ${parseFloat(val).toFixed(2)}`;
+}
+
+function normalizarTexto(valor = '') {
+  return String(valor)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase();
+}
+
+function imagenHabitacion(habitacion = {}) {
+  if (habitacion.imagen_principal) {
+    return habitacion.imagen_principal;
+  }
+
+  const nombre = normalizarTexto(
+    `${habitacion.tipo_nombre || ''} ${habitacion.nombre || ''}`
+  );
+
+  if (nombre.includes('PRESIDENCIAL')) {
+    return roomPresidential;
+  }
+
+  if (nombre.includes('FAMILIAR')) {
+    return roomFamily;
+  }
+
+  if (nombre.includes('DOBLE')) {
+    return roomDouble;
+  }
+
+  if (
+    nombre.includes('EJECUTIVA') ||
+    nombre.includes('SUITE')
+  ) {
+    return roomExecutive;
+  }
+
+  return roomStandard;
+}
+
+function imagenActividad(nombre = '') {
+  const texto = normalizarTexto(nombre);
+
+  if (
+    texto.includes('VINO') ||
+    texto.includes('CATA')
+  ) {
+    return activityWine;
+  }
+
+  if (texto.includes('NETWORK')) {
+    return activityNetworking;
+  }
+
+  return activityTour;
+}
+
+function imagenServicio(nombre = '') {
+  const texto = normalizarTexto(nombre);
+
+  if (texto.includes('DESAYUNO')) {
+    return serviceBreakfast;
+  }
+
+  if (
+    texto.includes('ESTACIONAMIENTO') ||
+    texto.includes('PARKING')
+  ) {
+    return serviceParking;
+  }
+
+  if (texto.includes('LAVANDER')) {
+    return serviceLaundry;
+  }
+
+  if (texto.includes('SPA')) {
+    return serviceSpa;
+  }
+
+  if (
+    texto.includes('TRANSPORTE') ||
+    texto.includes('AEROPUERTO')
+  ) {
+    return serviceLobby;
+  }
+
+  if (
+    texto.includes('ROOM') ||
+    texto.includes('HABITACION')
+  ) {
+    return serviceRoom;
+  }
+
+  return serviceFacade;
 }
 
 // ── Badges de estado ──────────────────────────────────────────────────────────
 
 const ESTADO_COLORS = {
-  PENDIENTE: { bg: 'rgba(201,168,76,.12)', color: '#c9a84c', border: 'rgba(201,168,76,.3)' },
-  CONFIRMADA: { bg: 'rgba(80,200,120,.12)', color: '#6be0a0', border: 'rgba(80,200,120,.25)' },
-  CHECK_IN: { bg: 'rgba(100,180,255,.12)', color: '#80c0ff', border: 'rgba(100,180,255,.25)' },
-  CHECK_OUT: { bg: 'rgba(200,160,255,.12)', color: '#c8a0ff', border: 'rgba(200,160,255,.25)' },
-  CANCELADA: { bg: 'rgba(255,80,80,.12)', color: '#f08080', border: 'rgba(255,80,80,.25)' },
+  PENDIENTE: {
+    bg: 'rgba(201,168,76,.12)',
+    color: '#b8964f',
+    border: 'rgba(201,168,76,.3)',
+  },
+  CONFIRMADA: {
+    bg: 'rgba(80,200,120,.12)',
+    color: '#6be0a0',
+    border: 'rgba(80,200,120,.25)',
+  },
+  CHECK_IN: {
+    bg: 'rgba(100,180,255,.12)',
+    color: '#80c0ff',
+    border: 'rgba(100,180,255,.25)',
+  },
+  CHECK_OUT: {
+    bg: 'rgba(200,160,255,.12)',
+    color: '#c8a0ff',
+    border: 'rgba(200,160,255,.25)',
+  },
+  CANCELADA: {
+    bg: 'rgba(255,80,80,.12)',
+    color: '#f08080',
+    border: 'rgba(255,80,80,.25)',
+  },
 };
 
 function EstadoBadge({ estado }) {
   const s = ESTADO_COLORS[estado] || {};
+
   return (
-    <span style={{
-      display: 'inline-block',
-      padding: '0.18rem 0.65rem',
-      borderRadius: 20,
-      fontSize: '0.72rem',
-      fontWeight: 700,
-      letterSpacing: '0.06em',
-      background: s.bg,
-      color: s.color,
-      border: `1px solid ${s.border}`,
-    }}>
+    <span
+      style={{
+        display: 'inline-block',
+        padding: '0.18rem 0.65rem',
+        borderRadius: 20,
+        fontSize: '0.72rem',
+        fontWeight: 700,
+        letterSpacing: '0.06em',
+        background: s.bg,
+        color: s.color,
+        border: `1px solid ${s.border}`,
+      }}
+    >
       {estado}
     </span>
   );
@@ -195,8 +346,7 @@ function ReservarSection() {
     setError('');
     setBusqueda(null);
 
-    const errorValidacion =
-      validarFormulario();
+    const errorValidacion = validarFormulario();
 
     if (errorValidacion) {
       setError(errorValidacion);
@@ -211,13 +361,12 @@ function ReservarSection() {
     setLoadingBusca(true);
 
     try {
-      const data =
-        await consultarDisponibilidad(
-          form.fechaEntrada,
-          form.fechaSalida,
-          cantidadVisitantes,
-          camasRequeridas
-        );
+      const data = await consultarDisponibilidad(
+        form.fechaEntrada,
+        form.fechaSalida,
+        cantidadVisitantes,
+        camasRequeridas
+      );
 
       setBusqueda(data);
       setStep('resultado');
@@ -276,10 +425,6 @@ function ReservarSection() {
     });
   };
 
-  // ---------------------------------------------------------------------------
-  // Buscar disponibilidad
-  // ---------------------------------------------------------------------------
-
   if (step === 'buscar') {
     return (
       <div>
@@ -287,7 +432,7 @@ function ReservarSection() {
           style={{
             fontSize: '1rem',
             fontWeight: 700,
-            color: '#f0f0f0',
+            color: '#123c69',
             marginBottom: '1.5rem',
             letterSpacing: '0.04em',
             textTransform: 'uppercase',
@@ -304,9 +449,7 @@ function ReservarSection() {
 
         <form
           onSubmit={handleBuscar}
-          style={{
-            maxWidth: '600px',
-          }}
+          style={{ maxWidth: '600px' }}
         >
           <div
             style={{
@@ -401,9 +544,7 @@ function ReservarSection() {
             type="submit"
             className="btn-new"
             disabled={loadingBusca}
-            style={{
-              marginTop: '1.25rem',
-            }}
+            style={{ marginTop: '1.25rem' }}
           >
             {loadingBusca
               ? 'Consultando...'
@@ -413,10 +554,6 @@ function ReservarSection() {
       </div>
     );
   }
-
-  // ---------------------------------------------------------------------------
-  // Resultado
-  // ---------------------------------------------------------------------------
 
   if (step === 'resultado') {
     const rec = busqueda?.recomendada;
@@ -435,7 +572,7 @@ function ReservarSection() {
           style={{
             fontSize: '1rem',
             fontWeight: 700,
-            color: '#f0f0f0',
+            color: '#123c69',
             marginBottom: '1.5rem',
             letterSpacing: '0.04em',
             textTransform: 'uppercase',
@@ -453,21 +590,19 @@ function ReservarSection() {
         {!rec ? (
           <div
             style={{
-              color: 'rgba(255,255,255,0.4)',
+              color: '#697582',
               fontSize: '0.9rem',
               padding: '2rem 0',
             }}
           >
-            No hay habitaciones disponibles para
-            los criterios seleccionados.
+            No hay habitaciones disponibles para los
+            criterios seleccionados.
 
             <br />
 
             <button
               className="btn-cancel"
-              style={{
-                marginTop: '1rem',
-              }}
+              style={{ marginTop: '1rem' }}
               onClick={handleNueva}
             >
               Volver a buscar
@@ -475,149 +610,114 @@ function ReservarSection() {
           </div>
         ) : (
           <>
-            <div
-              style={{
-                background: '#111',
-                border: '1px solid #1e1e1e',
-                borderRadius: 12,
-                padding: '1.5rem',
-                maxWidth: 540,
-                marginBottom: '1.25rem',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: '1rem',
-                }}
-              >
-                <span
+            <div className="client-room-card">
+              <img
+                className="client-room-image"
+                src={imagenHabitacion(rec)}
+                alt={`Habitación ${rec.numero_habitacion || ''} ${rec.nombre || ''}`.trim()}
+              />
+
+              <div className="client-room-card-body">
+                <div
                   style={{
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    letterSpacing: '0.12em',
-                    color: '#c9a84c',
-                    textTransform: 'uppercase',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '1rem',
                   }}
                 >
-                  Habitación Asignada
-                </span>
+                  <span
+                    style={{
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      letterSpacing: '0.12em',
+                      color: '#b8964f',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Habitación Asignada
+                  </span>
 
-                <span
-                  className={`estado-badge estado-${rec.estado}`}
+                  <span
+                    className={`estado-badge estado-${rec.estado}`}
+                  >
+                    {rec.estado}
+                  </span>
+                </div>
+
+                <p
+                  style={{
+                    fontSize: '1.2rem',
+                    fontWeight: 700,
+                    color: '#123c69',
+                    marginBottom: '0.25rem',
+                  }}
                 >
-                  {rec.estado}
-                </span>
-              </div>
+                  Hab. {rec.numero_habitacion}
+                  {rec.nombre ? ` — ${rec.nombre}` : ''}
+                </p>
 
-              <p
-                style={{
-                  fontSize: '1.2rem',
-                  fontWeight: 700,
-                  color: '#f0f0f0',
-                  marginBottom: '0.25rem',
-                }}
-              >
-                Hab. {rec.numero_habitacion}
-                {rec.nombre
-                  ? ` — ${rec.nombre}`
-                  : ''}
-              </p>
+                <p
+                  style={{
+                    fontSize: '0.82rem',
+                    color: '#697582',
+                    marginBottom: '1rem',
+                  }}
+                >
+                  {rec.tipo_nombre}
+                  {' · '}
+                  Piso {rec.piso}
+                  {' · '}
+                  Capacidad {rec.capacidad_maxima} personas
+                </p>
 
-              <p
-                style={{
-                  fontSize: '0.82rem',
-                  color:
-                    'rgba(255,255,255,0.45)',
-                  marginBottom: '1rem',
-                }}
-              >
-                {rec.tipo_nombre}
-                {' · '}
-                Piso {rec.piso}
-                {' · '}
-                Capacidad {rec.capacidad_maxima}
-                {' personas'}
-              </p>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '0.75rem',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  {[
+                    ['Entrada', formatFecha(form.fechaEntrada)],
+                    ['Salida', formatFecha(form.fechaSalida)],
+                    ['Noches', noches],
+                    ['Adultos', cantidadAdultos],
+                    ['Niños', cantidadNinos],
+                    ['Visitantes', cantidadVisitantes],
+                    ['Camas requeridas', camasRequeridas],
+                    ['Camas habitación', rec.total_camas || 0],
+                    ['Precio/noche', formatMoneda(rec.precio_noche)],
+                    [
+                      'Total estimado',
+                      formatMoneda(
+                        parseFloat(rec.precio_noche) * noches
+                      ),
+                    ],
+                  ].map(([label, value]) => (
+                    <div key={label}>
+                      <p
+                        style={{
+                          fontSize: '0.7rem',
+                          color: '#7a8490',
+                          marginBottom: '0.2rem',
+                        }}
+                      >
+                        {label}
+                      </p>
 
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns:
-                    '1fr 1fr',
-                  gap: '0.75rem',
-                  fontSize: '0.85rem',
-                }}
-              >
-                {[
-                  [
-                    'Entrada',
-                    formatFecha(form.fechaEntrada),
-                  ],
-                  [
-                    'Salida',
-                    formatFecha(form.fechaSalida),
-                  ],
-                  [
-                    'Noches',
-                    noches,
-                  ],
-                  [
-                    'Adultos',
-                    cantidadAdultos,
-                  ],
-                  [
-                    'Niños',
-                    cantidadNinos,
-                  ],
-                  [
-                    'Visitantes',
-                    cantidadVisitantes,
-                  ],
-                  [
-                    'Camas requeridas',
-                    camasRequeridas,
-                  ],
-                  [
-                    'Camas habitación',
-                    rec.total_camas || 0,
-                  ],
-                  [
-                    'Precio/noche',
-                    formatMoneda(rec.precio_noche),
-                  ],
-                  [
-                    'Total estimado',
-                    formatMoneda(
-                      parseFloat(rec.precio_noche) *
-                      noches
-                    ),
-                  ],
-                ].map(([label, value]) => (
-                  <div key={label}>
-                    <p
-                      style={{
-                        fontSize: '0.7rem',
-                        color:
-                          'rgba(255,255,255,0.35)',
-                        marginBottom: '0.2rem',
-                      }}
-                    >
-                      {label}
-                    </p>
-
-                    <p
-                      style={{
-                        color: '#f0f0f0',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {value}
-                    </p>
-                  </div>
-                ))}
+                      <p
+                        style={{
+                          color: '#123c69',
+                          fontWeight: 600,
+                        }}
+                      >
+                        {value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -625,6 +725,7 @@ function ReservarSection() {
               style={{
                 display: 'flex',
                 gap: '0.75rem',
+                flexWrap: 'wrap',
               }}
             >
               <button
@@ -651,10 +752,6 @@ function ReservarSection() {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Confirmada
-  // ---------------------------------------------------------------------------
-
   if (step === 'confirmado') {
     const habitacion =
       reservaCreada?.habitaciones?.[0];
@@ -669,7 +766,7 @@ function ReservarSection() {
           style={{
             fontSize: '1rem',
             fontWeight: 700,
-            color: '#f0f0f0',
+            color: '#123c69',
             marginBottom: '1.5rem',
             marginTop: '1.5rem',
             letterSpacing: '0.04em',
@@ -679,96 +776,67 @@ function ReservarSection() {
           Detalle de Reservación
         </h2>
 
-        <div
-          style={{
-            background: '#111',
-            border: '1px solid #1e1e1e',
-            borderRadius: 12,
-            padding: '1.5rem',
-            maxWidth: 540,
-            marginBottom: '1.25rem',
-          }}
-        >
-          {[
-            [
-              'Código',
-              reservaCreada?.codigo_reservacion,
-            ],
-            [
-              'Estado',
-              null,
-            ],
-            [
-              'Habitación',
-              habitacion
-                ? `Hab. ${habitacion.numero_habitacion}`
-                : '—',
-            ],
-            [
-              'Adultos',
-              reservaCreada?.cantidad_adultos,
-            ],
-            [
-              'Niños',
-              reservaCreada?.cantidad_ninos,
-            ],
-            [
-              'Visitantes',
-              reservaCreada?.cantidad_visitantes,
-            ],
-            [
-              'Camas requeridas',
-              reservaCreada?.camas_requeridas,
-            ],
-            [
-              'Subtotal',
-              formatMoneda(
-                reservaCreada?.subtotal
-              ),
-            ],
-            [
-              'Total',
-              formatMoneda(
-                reservaCreada?.total
-              ),
-            ],
-          ].map(([label, value]) => (
-            <div
-              key={label}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                borderBottom:
-                  '1px solid #161616',
-                padding: '0.45rem 0',
-                fontSize: '0.85rem',
-              }}
-            >
-              <span
-                style={{
-                  color:
-                    'rgba(255,255,255,0.35)',
-                }}
-              >
-                {label}
-              </span>
+        <div className="client-room-card">
+          {habitacion && (
+            <img
+              className="client-room-image"
+              src={imagenHabitacion({
+                ...habitacion,
+                tipo_nombre: habitacion.tipo_nombre,
+                nombre: habitacion.habitacion_nombre,
+              })}
+              alt={`Habitación ${habitacion.numero_habitacion || ''}`.trim()}
+            />
+          )}
 
-              <span
+          <div className="client-room-card-body">
+            {[
+              ['Código', reservaCreada?.codigo_reservacion],
+              ['Estado', null],
+              [
+                'Habitación',
+                habitacion
+                  ? `Hab. ${habitacion.numero_habitacion}`
+                  : '—',
+              ],
+              ['Adultos', reservaCreada?.cantidad_adultos],
+              ['Niños', reservaCreada?.cantidad_ninos],
+              ['Visitantes', reservaCreada?.cantidad_visitantes],
+              ['Camas requeridas', reservaCreada?.camas_requeridas],
+              ['Subtotal', formatMoneda(reservaCreada?.subtotal)],
+              ['Total', formatMoneda(reservaCreada?.total)],
+            ].map(([label, value]) => (
+              <div
+                key={label}
                 style={{
-                  fontWeight: 600,
-                  color: '#f0f0f0',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  borderBottom: '1px solid #161616',
+                  padding: '0.45rem 0',
+                  fontSize: '0.85rem',
                 }}
               >
-                {label === 'Estado' ? (
-                  <EstadoBadge
-                    estado={reservaCreada?.estado}
-                  />
-                ) : (
-                  value
-                )}
-              </span>
-            </div>
-          ))}
+                <span style={{ color: '#7a8490' }}>
+                  {label}
+                </span>
+
+                <span
+                  style={{
+                    fontWeight: 600,
+                    color: '#123c69',
+                  }}
+                >
+                  {label === 'Estado' ? (
+                    <EstadoBadge
+                      estado={reservaCreada?.estado}
+                    />
+                  ) : (
+                    value
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
 
         <button
@@ -798,6 +866,7 @@ function MisReservacionesSection() {
   const cargar = async () => {
     setLoading(true);
     setError('');
+
     try {
       const data = await getMisReservaciones();
       setReservaciones(data.reservaciones);
@@ -808,16 +877,14 @@ function MisReservacionesSection() {
     }
   };
 
-  // Cargar al montar
-  useState(() => { cargar(); }, []);
-  // Equivalente funcional para efecto inicial:
-  if (reservaciones === null && !loading && !error) {
+  useEffect(() => {
     cargar();
-  }
+  }, []);
 
   const verDetalle = async (id) => {
     setLoadingDetalle(true);
     setMsgCancelada('');
+
     try {
       const data = await getMiReservacion(id);
       setDetalle(data.reservacion);
@@ -829,13 +896,23 @@ function MisReservacionesSection() {
   };
 
   const handleCancelar = async (id) => {
-    if (!window.confirm('¿Confirmas que deseas cancelar esta reservación?')) return;
+    if (
+      !window.confirm(
+        '¿Confirmas que deseas cancelar esta reservación?'
+      )
+    ) {
+      return;
+    }
+
     setCancelando(true);
     setMsgCancelada('');
+
     try {
       const data = await cancelarReservacion(id);
+
       setMsgCancelada('Reservación cancelada.');
       setDetalle(data.reservacion);
+
       await cargar();
     } catch (err) {
       setError(err.message);
@@ -844,32 +921,84 @@ function MisReservacionesSection() {
     }
   };
 
-  if (loading) return <p className="admin-loading">Cargando reservaciones...</p>;
-  if (error) return <div className="admin-error">{error}</div>;
+  if (loading) {
+    return (
+      <p className="admin-loading">
+        Cargando reservaciones...
+      </p>
+    );
+  }
+
+  if (error) {
+    return <div className="admin-error">{error}</div>;
+  }
 
   if (detalle) {
     const hab = detalle.habitaciones?.[0];
-    const noches = hab?.cantidad_noches || calcularNoches(detalle.fecha_entrada, detalle.fecha_salida);
-    const puedeCancel = ['PENDIENTE', 'CONFIRMADA'].includes(detalle.estado);
+
+    const noches =
+      hab?.cantidad_noches ||
+      calcularNoches(
+        detalle.fecha_entrada,
+        detalle.fecha_salida
+      );
+
+    const puedeCancel = [
+      'PENDIENTE',
+      'CONFIRMADA',
+    ].includes(detalle.estado);
 
     return (
       <div>
-        <button className="btn-cancel" style={{ marginBottom: '1.25rem' }} onClick={() => setDetalle(null)}>
+        <button
+          className="btn-cancel"
+          style={{ marginBottom: '1.25rem' }}
+          onClick={() => setDetalle(null)}
+        >
           ← Volver a mis reservaciones
         </button>
 
-        <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#f0f0f0', marginBottom: '1.5rem', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+        <h2
+          style={{
+            fontSize: '1rem',
+            fontWeight: 700,
+            color: '#123c69',
+            marginBottom: '1.5rem',
+            letterSpacing: '0.04em',
+            textTransform: 'uppercase',
+          }}
+        >
           Detalle de Reservación #{detalle.id_reservacion}
         </h2>
 
-        {msgCancelada && <div className="admin-success">{msgCancelada}</div>}
-        {error && <div className="admin-error">{error}</div>}
+        {msgCancelada && (
+          <div className="admin-success">
+            {msgCancelada}
+          </div>
+        )}
 
-        <div style={{ background: '#111', border: '1px solid #1e1e1e', borderRadius: 12, padding: '1.5rem', maxWidth: 540, marginBottom: '1.25rem' }}>
+        <div
+          style={{
+            background: '#ffffff',
+            border: '1px solid #1e1e1e',
+            borderRadius: 12,
+            padding: '1.5rem',
+            maxWidth: 540,
+            marginBottom: '1.25rem',
+          }}
+        >
           {[
             ['Código', detalle.codigo_reservacion],
             ['Estado', null],
-            ['Habitación', hab ? `${hab.numero_habitacion}${hab.habitacion_nombre ? ` — ${hab.habitacion_nombre}` : ''}` : '—'],
+            [
+              'Habitación',
+              hab
+                ? `${hab.numero_habitacion}${hab.habitacion_nombre
+                  ? ` — ${hab.habitacion_nombre}`
+                  : ''
+                }`
+                : '—',
+            ],
             ['Tipo', hab?.tipo_nombre || '—'],
             ['Fecha entrada', formatFecha(detalle.fecha_entrada)],
             ['Fecha salida', formatFecha(detalle.fecha_salida)],
@@ -879,36 +1008,47 @@ function MisReservacionesSection() {
             ['Total', formatMoneda(detalle.total)],
             ['Creada', formatFecha(detalle.fecha_creacion)],
           ].map(([label, value]) => (
-            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #161616', padding: '0.45rem 0', fontSize: '0.85rem' }}>
-              <span style={{ color: 'rgba(255,255,255,0.35)' }}>{label}</span>
-              <span style={{ fontWeight: 600, color: '#f0f0f0' }}>
-                {label === 'Estado' ? <EstadoBadge estado={detalle.estado} /> : value}
+            <div
+              key={label}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                borderBottom: '1px solid #161616',
+                padding: '0.45rem 0',
+                fontSize: '0.85rem',
+              }}
+            >
+              <span style={{ color: '#7a8490' }}>
+                {label}
+              </span>
+
+              <span
+                style={{
+                  fontWeight: 600,
+                  color: '#123c69',
+                }}
+              >
+                {label === 'Estado' ? (
+                  <EstadoBadge estado={detalle.estado} />
+                ) : (
+                  value
+                )}
               </span>
             </div>
           ))}
         </div>
 
-        {detalle.visitantes?.length > 0 && (
-          <div style={{ background: '#111', border: '1px solid #1e1e1e', borderRadius: 12, padding: '1.25rem', maxWidth: 540, marginBottom: '1.25rem' }}>
-            <p style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
-              Visitantes
-            </p>
-            {detalle.visitantes.map((v) => (
-              <div key={v.id_visitante} style={{ fontSize: '0.85rem', borderBottom: '1px solid #161616', padding: '0.4rem 0', color: 'rgba(255,255,255,0.7)' }}>
-                {v.es_titular ? ' ' : ''}{v.nombres} {v.apellidos} · {v.tipo_documento} {v.numero_documento || ''}
-              </div>
-            ))}
-          </div>
-        )}
-
         {puedeCancel && (
           <button
             className="btn-cancel"
-            onClick={() => handleCancelar(detalle.id_reservacion)}
+            onClick={() =>
+              handleCancelar(detalle.id_reservacion)
+            }
             disabled={cancelando}
-            style={{ border: '1px solid rgba(255,80,80,.4)', color: '#f08080' }}
           >
-            {cancelando ? 'Cancelando...' : 'Cancelar reservación'}
+            {cancelando
+              ? 'Cancelando...'
+              : 'Cancelar reservación'}
           </button>
         )}
       </div>
@@ -918,12 +1058,27 @@ function MisReservacionesSection() {
   return (
     <div>
       <div className="admin-section-header">
-        <h2 className="admin-section-title">Mis Reservaciones</h2>
-        <button className="btn-icon" onClick={cargar}>Actualizar</button>
+        <h2 className="admin-section-title">
+          Mis Reservaciones
+        </h2>
+
+        <button
+          className="btn-icon"
+          onClick={cargar}
+        >
+          Actualizar
+        </button>
       </div>
 
-      {!reservaciones || reservaciones.length === 0 ? (
-        <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.88rem', padding: '2rem 0' }}>
+      {!reservaciones ||
+        reservaciones.length === 0 ? (
+        <p
+          style={{
+            color: '#7a8490',
+            fontSize: '0.88rem',
+            padding: '2rem 0',
+          }}
+        >
           No tienes reservaciones aún.
         </p>
       ) : (
@@ -941,20 +1096,44 @@ function MisReservacionesSection() {
                 <th></th>
               </tr>
             </thead>
+
             <tbody>
               {reservaciones.map((r) => (
                 <tr key={r.id_reservacion}>
-                  <td className="muted">#{r.id_reservacion}</td>
-                  <td>{r.numero_habitacion || '—'}</td>
-                  <td className="muted">{r.tipo_habitacion || '—'}</td>
-                  <td className="muted">{formatFecha(r.fecha_entrada)}</td>
-                  <td className="muted">{formatFecha(r.fecha_salida)}</td>
-                  <td>{formatMoneda(r.total)}</td>
-                  <td><EstadoBadge estado={r.estado} /></td>
+                  <td className="muted">
+                    #{r.id_reservacion}
+                  </td>
+
+                  <td>
+                    {r.numero_habitacion || '—'}
+                  </td>
+
+                  <td className="muted">
+                    {r.tipo_habitacion || '—'}
+                  </td>
+
+                  <td className="muted">
+                    {formatFecha(r.fecha_entrada)}
+                  </td>
+
+                  <td className="muted">
+                    {formatFecha(r.fecha_salida)}
+                  </td>
+
+                  <td>
+                    {formatMoneda(r.total)}
+                  </td>
+
+                  <td>
+                    <EstadoBadge estado={r.estado} />
+                  </td>
+
                   <td>
                     <button
                       className="btn-icon"
-                      onClick={() => verDetalle(r.id_reservacion)}
+                      onClick={() =>
+                        verDetalle(r.id_reservacion)
+                      }
                       disabled={loadingDetalle}
                     >
                       Ver
@@ -970,7 +1149,7 @@ function MisReservacionesSection() {
   );
 }
 
-// ── Sección: Servicios Adicionales para Cliente ───────────────────────────────
+// ── Servicios ─────────────────────────────────────────────────────────────────
 
 function ServiciosClienteSection() {
   const [reservaciones, setReservaciones] = useState([]);
@@ -985,15 +1164,23 @@ function ServiciosClienteSection() {
   const cargarReservaciones = async () => {
     setLoading(true);
     setError('');
+
     try {
       const res = await getMisReservaciones();
-      // Filtrar reservaciones compatibles (no canceladas ni check-out)
-      const compatibles = (res.reservaciones || []).filter(
-        r => !['CANCELADA', 'CHECK_OUT'].includes(r.estado)
+
+      const compatibles = (
+        res.reservaciones || []
+      ).filter(
+        (r) =>
+          !['CANCELADA', 'CHECK_OUT'].includes(r.estado)
       );
+
       setReservaciones(compatibles);
+
       if (compatibles.length > 0) {
-        setSelectedResId(String(compatibles[0].id_reservacion));
+        setSelectedResId(
+          String(compatibles[0].id_reservacion)
+        );
       }
     } catch (err) {
       setError(err.message);
@@ -1017,8 +1204,12 @@ function ServiciosClienteSection() {
   }, []);
 
   const cargarServiciosAsociados = async (resId) => {
-    if (!resId) return;
+    if (!resId) {
+      return;
+    }
+
     setLoadingServices(true);
+
     try {
       const res = await getServiciosReservacion(resId);
       setAssociated(res.servicios || []);
@@ -1039,112 +1230,243 @@ function ServiciosClienteSection() {
 
   const flash = (msg) => {
     setSuccess(msg);
-    setTimeout(() => setSuccess(''), 3000);
+
+    setTimeout(() => {
+      setSuccess('');
+    }, 3000);
   };
 
   const handleAgregarServicio = async (idServicio) => {
-    if (!selectedResId) return;
+    if (!selectedResId) {
+      return;
+    }
+
     setError('');
+
     try {
-      const res = await agregarServicioReservacion(selectedResId, idServicio, 1);
+      const res = await agregarServicioReservacion(
+        selectedResId,
+        idServicio,
+        1
+      );
+
       setAssociated(res.servicios || []);
-      flash('Servicio agregado correctamente a la reservación.');
+
+      flash(
+        'Servicio agregado correctamente a la reservación.'
+      );
     } catch (err) {
       setError(err.message);
     }
   };
 
-  const handleQuitarServicio = async (idReservacionServicio) => {
-    if (!selectedResId) return;
-    if (!window.confirm('¿Confirmas que deseas quitar este servicio de la reservación?')) return;
+  const handleQuitarServicio = async (
+    idReservacionServicio
+  ) => {
+    if (!selectedResId) {
+      return;
+    }
+
+    if (
+      !window.confirm(
+        '¿Confirmas que deseas quitar este servicio de la reservación?'
+      )
+    ) {
+      return;
+    }
+
     setError('');
+
     try {
-      const res = await quitarServicioReservacion(selectedResId, idReservacionServicio);
+      const res = await quitarServicioReservacion(
+        selectedResId,
+        idReservacionServicio
+      );
+
       setAssociated(res.servicios || []);
+
       flash('Servicio removido correctamente.');
     } catch (err) {
       setError(err.message);
     }
   };
 
-  // Encontrar detalles de la reservación seleccionada para mostrar su estado
-  const currentRes = reservaciones.find(r => String(r.id_reservacion) === selectedResId);
+  const currentRes = reservaciones.find(
+    (r) =>
+      String(r.id_reservacion) === selectedResId
+  );
 
-  if (loading) return <p className="admin-loading">Cargando reservaciones...</p>;
+  if (loading) {
+    return (
+      <p className="admin-loading">
+        Cargando reservaciones...
+      </p>
+    );
+  }
 
   return (
     <div>
       <div className="admin-section-header">
-        <h2 className="admin-section-title">Servicios Adicionales</h2>
+        <h2 className="admin-section-title">
+          Servicios Adicionales
+        </h2>
       </div>
 
-      {error && <div className="admin-error">{error}</div>}
-      {success && <div className="admin-success">{success}</div>}
+      {error && (
+        <div className="admin-error">
+          {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="admin-success">
+          {success}
+        </div>
+      )}
 
       {reservaciones.length === 0 ? (
-        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem', padding: '2rem 0' }}>
-          No tienes reservaciones activas compatibles (PENDIENTE, CONFIRMADA o CHECK_IN) para gestionar servicios adicionales.
+        <div
+          style={{
+            color: '#697582',
+            fontSize: '0.9rem',
+            padding: '2rem 0',
+          }}
+        >
+          No tienes reservaciones activas compatibles
+          para gestionar servicios adicionales.
         </div>
       ) : (
         <div>
-          {/* Selector de reservación */}
-          <div className="form-field" style={{ maxWidth: '400px', marginBottom: '2rem' }}>
-            <label htmlFor="select-reservacion">Selecciona una de tus Reservaciones Activas</label>
+          <div
+            className="form-field"
+            style={{
+              maxWidth: '400px',
+              marginBottom: '2rem',
+            }}
+          >
+            <label htmlFor="select-reservacion">
+              Selecciona una de tus Reservaciones Activas
+            </label>
+
             <select
               id="select-reservacion"
               value={selectedResId}
-              onChange={e => setSelectedResId(e.target.value)}
-              style={{ background: '#111', border: '1px solid #222' }}
+              onChange={(e) =>
+                setSelectedResId(e.target.value)
+              }
             >
-              {reservaciones.map(r => (
-                <option key={r.id_reservacion} value={r.id_reservacion}>
-                  Reservación #{r.id_reservacion} (Hab. {r.numero_habitacion || '—'}) [Entrada: {formatFecha(r.fecha_entrada)}]
+              {reservaciones.map((r) => (
+                <option
+                  key={r.id_reservacion}
+                  value={r.id_reservacion}
+                >
+                  Reservación #{r.id_reservacion} -
+                  Hab. {r.numero_habitacion || '—'}
                 </option>
               ))}
             </select>
+
             {currentRes && (
-              <div style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>
-                Estado de la reservación: <EstadoBadge estado={currentRes.estado} />
+              <div
+                style={{
+                  marginTop: '0.5rem',
+                  fontSize: '0.8rem',
+                }}
+              >
+                Estado de la reservación:{' '}
+                <EstadoBadge estado={currentRes.estado} />
               </div>
             )}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-
-            {/* Catálogo de Servicios Disponibles */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '2rem',
+            }}
+          >
             <div>
-              <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f0f0f0', marginBottom: '1rem', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+              <h3
+                style={{
+                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  color: '#123c69',
+                  marginBottom: '1rem',
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                }}
+              >
                 Catálogo de Servicios Disponibles
               </h3>
+
               {catalog.length === 0 ? (
-                <p className="muted" style={{ fontSize: '0.85rem' }}>No hay servicios adicionales activos en el hotel.</p>
+                <p className="muted">
+                  No hay servicios adicionales activos.
+                </p>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {catalog.map(s => (
-                    <div key={s.id_servicio} style={{
-                      background: '#111',
-                      border: '1px solid #1e1e1e',
-                      borderRadius: '8px',
-                      padding: '1rem',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}>
-                      <div style={{ flex: 1, paddingRight: '1rem' }}>
-                        <p style={{ fontSize: '0.9rem', fontWeight: 600, color: '#f0f0f0', margin: 0 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1rem',
+                  }}
+                >
+                  {catalog.map((s) => (
+                    <div
+                      key={s.id_servicio}
+                      className="client-service-card"
+                    >
+                      <img
+                        className="client-service-image"
+                        src={imagenServicio(s.nombre)}
+                        alt={s.nombre}
+                      />
+
+                      <div className="client-service-copy">
+                        <p
+                          style={{
+                            fontSize: '0.9rem',
+                            fontWeight: 600,
+                            color: '#123c69',
+                            margin: 0,
+                          }}
+                        >
                           {s.nombre}
                         </p>
-                        <p className="muted" style={{ fontSize: '0.78rem', margin: '0.25rem 0 0 0', color: 'rgba(255,255,255,0.45)' }}>
+
+                        <p
+                          className="muted"
+                          style={{
+                            fontSize: '0.78rem',
+                            margin: '0.25rem 0 0 0',
+                            color: '#697582',
+                          }}
+                        >
                           {s.descripcion || 'Sin descripción'}
                         </p>
-                        <p style={{ fontSize: '0.85rem', color: '#c9a84c', fontWeight: 600, margin: '0.4rem 0 0 0' }}>
+
+                        <p
+                          style={{
+                            fontSize: '0.85rem',
+                            color: '#b8964f',
+                            fontWeight: 600,
+                            margin: '0.4rem 0 0 0',
+                          }}
+                        >
                           Q {Number(s.precio).toFixed(2)}
                         </p>
                       </div>
+
                       <button
                         className="btn-new"
-                        onClick={() => handleAgregarServicio(s.id_servicio)}
-                        style={{ fontSize: '0.72rem', padding: '0.4rem 0.8rem' }}
+                        onClick={() =>
+                          handleAgregarServicio(s.id_servicio)
+                        }
+                        style={{
+                          fontSize: '0.72rem',
+                          padding: '0.4rem 0.8rem',
+                        }}
                       >
                         + Agregar
                       </button>
@@ -1154,15 +1476,28 @@ function ServiciosClienteSection() {
               )}
             </div>
 
-            {/* Servicios Asociados a la Reservación */}
             <div>
-              <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f0f0f0', marginBottom: '1rem', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+              <h3
+                style={{
+                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  color: '#123c69',
+                  marginBottom: '1rem',
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                }}
+              >
                 Servicios en esta Reservación
               </h3>
+
               {loadingServices ? (
-                <p className="admin-loading" style={{ padding: '1rem' }}>Cargando servicios asociados...</p>
+                <p className="admin-loading">
+                  Cargando servicios asociados...
+                </p>
               ) : associated.length === 0 ? (
-                <p className="muted" style={{ fontSize: '0.85rem' }}>No has agregado servicios adicionales a esta reservación.</p>
+                <p className="muted">
+                  No has agregado servicios adicionales.
+                </p>
               ) : (
                 <div className="admin-table-wrap">
                   <table className="admin-table">
@@ -1175,38 +1510,77 @@ function ServiciosClienteSection() {
                         <th></th>
                       </tr>
                     </thead>
+
                     <tbody>
-                      {associated.map(asoc => (
-                        <tr key={asoc.id_reservacion_servicio}>
-                          <td style={{ fontWeight: 600 }}>
+                      {associated.map((asoc) => (
+                        <tr
+                          key={asoc.id_reservacion_servicio}
+                        >
+                          <td>
                             {asoc.servicio_nombre}
                           </td>
-                          <td>{asoc.cantidad}</td>
-                          <td>Q {Number(asoc.precio_unitario_aplicado).toFixed(2)}</td>
-                          <td style={{ fontWeight: 600 }}>Q {Number(asoc.subtotal).toFixed(2)}</td>
+
+                          <td>
+                            {asoc.cantidad}
+                          </td>
+
+                          <td>
+                            Q{' '}
+                            {Number(
+                              asoc.precio_unitario_aplicado
+                            ).toFixed(2)}
+                          </td>
+
+                          <td>
+                            Q{' '}
+                            {Number(
+                              asoc.subtotal
+                            ).toFixed(2)}
+                          </td>
+
                           <td>
                             <button
                               className="btn-icon danger"
-                              onClick={() => handleQuitarServicio(asoc.id_reservacion_servicio)}
-                              title="Quitar de la reservación"
+                              onClick={() =>
+                                handleQuitarServicio(
+                                  asoc.id_reservacion_servicio
+                                )
+                              }
                             >
-
+                              Quitar
                             </button>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                  <div style={{ padding: '0.8rem 1rem', background: '#111', borderTop: '1px solid #1e1e1e', display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 700 }}>
+
+                  <div
+                    style={{
+                      padding: '0.8rem 1rem',
+                      background: '#ffffff',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontWeight: 700,
+                    }}
+                  >
                     <span>Total en Servicios:</span>
-                    <span style={{ color: '#c9a84c' }}>
-                      Q {associated.reduce((sum, asoc) => sum + parseFloat(asoc.subtotal), 0).toFixed(2)}
+
+                    <span style={{ color: '#b8964f' }}>
+                      Q{' '}
+                      {associated
+                        .reduce(
+                          (sum, asoc) =>
+                            sum +
+                            parseFloat(asoc.subtotal),
+                          0
+                        )
+                        .toFixed(2)}
                     </span>
                   </div>
                 </div>
               )}
             </div>
-
           </div>
         </div>
       )}
@@ -1214,8 +1588,7 @@ function ServiciosClienteSection() {
   );
 }
 
-
-// ── Sección: Actividades para Cliente ─────────────────────────────────────────
+// ── Actividades ───────────────────────────────────────────────────────────────
 
 function ActividadesClienteSection() {
   const [actividades, setActividades] = useState([]);
@@ -1229,11 +1602,13 @@ function ActividadesClienteSection() {
   const cargar = async () => {
     setLoading(true);
     setError('');
+
     try {
       const [actData, insData] = await Promise.all([
         getActividadesCliente(),
         getMisInscripciones(),
       ]);
+
       setActividades(actData.actividades || []);
       setInscripciones(insData.inscripciones || []);
     } catch (err) {
@@ -1249,16 +1624,28 @@ function ActividadesClienteSection() {
 
   const flash = (mensaje) => {
     setSuccess(mensaje);
-    window.setTimeout(() => setSuccess(''), 3000);
+
+    window.setTimeout(() => {
+      setSuccess('');
+    }, 3000);
   };
 
   const inscribirse = async (idActividad) => {
-    const cantidad = Number(cantidades[idActividad] || 1);
+    const cantidad = Number(
+      cantidades[idActividad] || 1
+    );
+
     setProcesando(`act-${idActividad}`);
     setError('');
+
     try {
-      await inscribirseActividad(idActividad, cantidad);
+      await inscribirseActividad(
+        idActividad,
+        cantidad
+      );
+
       flash('Inscripción realizada correctamente.');
+
       await cargar();
     } catch (err) {
       setError(err.message);
@@ -1268,12 +1655,22 @@ function ActividadesClienteSection() {
   };
 
   const cancelar = async (idInscripcion) => {
-    if (!window.confirm('¿Cancelar esta inscripción?')) return;
+    if (
+      !window.confirm(
+        '¿Cancelar esta inscripción?'
+      )
+    ) {
+      return;
+    }
+
     setProcesando(`ins-${idInscripcion}`);
     setError('');
+
     try {
       await cancelarInscripcion(idInscripcion);
+
       flash('Inscripción cancelada.');
+
       await cargar();
     } catch (err) {
       setError(err.message);
@@ -1284,134 +1681,239 @@ function ActividadesClienteSection() {
 
   const idsInscritos = new Set(
     inscripciones
-      .filter((ins) => ins.estado === 'CONFIRMADA')
+      .filter(
+        (ins) => ins.estado === 'CONFIRMADA'
+      )
       .map((ins) => Number(ins.id_actividad))
   );
 
   if (loading) {
-    return <p className="admin-loading">Cargando actividades...</p>;
+    return (
+      <p className="admin-loading">
+        Cargando actividades...
+      </p>
+    );
   }
 
   return (
     <div>
       <div className="admin-section-header">
-        <h2 className="admin-section-title">Actividades del Hotel</h2>
-        <button className="btn-icon" onClick={cargar}>Actualizar</button>
+        <h2 className="admin-section-title">
+          Actividades del Hotel
+        </h2>
+
+        <button
+          className="btn-icon"
+          onClick={cargar}
+        >
+          Actualizar
+        </button>
       </div>
 
-      {error && <div className="admin-error">{error}</div>}
-      {success && <div className="admin-success">{success}</div>}
+      {error && (
+        <div className="admin-error">
+          {error}
+        </div>
+      )}
 
-      <h3 style={{
-        color: '#f0f0f0',
-        fontSize: '.9rem',
-        textTransform: 'uppercase',
-        letterSpacing: '.06em',
-        marginBottom: '1rem',
-      }}>
+      {success && (
+        <div className="admin-success">
+          {success}
+        </div>
+      )}
+
+      <h3
+        style={{
+          color: '#123c69',
+          fontSize: '.9rem',
+          textTransform: 'uppercase',
+          letterSpacing: '.06em',
+          marginBottom: '1rem',
+        }}
+      >
         Disponibles
       </h3>
 
       {actividades.length === 0 ? (
-        <p className="muted">No hay actividades disponibles.</p>
+        <p className="muted">
+          No hay actividades disponibles.
+        </p>
       ) : (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '1rem',
-          marginBottom: '2.5rem',
-        }}>
+        <div className="client-activity-grid">
           {actividades.map((actividad) => {
-            const inscritos = Number(actividad.inscritos_actuales || 0);
-            const cupo = Number(actividad.cupo_maximo || 0);
-            const disponible = Math.max(0, cupo - inscritos);
-            const yaInscrito = idsInscritos.has(Number(actividad.id_actividad));
+            const inscritos = Number(
+              actividad.inscritos_actuales || 0
+            );
+
+            const cupo = Number(
+              actividad.cupo_maximo || 0
+            );
+
+            const disponible = Math.max(
+              0,
+              cupo - inscritos
+            );
+
+            const yaInscrito = idsInscritos.has(
+              Number(actividad.id_actividad)
+            );
 
             return (
-              <div
+              <article
                 key={actividad.id_actividad}
-                style={{
-                  background: '#111',
-                  border: '1px solid #1e1e1e',
-                  borderRadius: 12,
-                  padding: '1.25rem',
-                }}
+                className="client-activity-card"
               >
-                <p style={{
-                  color: '#c9a84c',
-                  fontSize: '.68rem',
-                  fontWeight: 700,
-                  letterSpacing: '.1em',
-                  textTransform: 'uppercase',
-                }}>
-                  {actividad.estado}
-                </p>
-                <h3 style={{ color: '#f0f0f0', margin: '.5rem 0' }}>
-                  {actividad.nombre}
-                </h3>
-                <p className="muted" style={{ fontSize: '.82rem' }}>
-                  {actividad.descripcion || 'Sin descripción'}
-                </p>
+                <img
+                  className="client-activity-image"
+                  src={imagenActividad(
+                    actividad.nombre
+                  )}
+                  alt={actividad.nombre}
+                />
 
-                <div style={{ marginTop: '1rem', fontSize: '.82rem', color: 'rgba(255,255,255,.65)' }}>
-                  <p> {formatFecha(actividad.fecha_actividad)}</p>
-                  <p> {String(actividad.hora_inicio || '').slice(0, 5)}</p>
-                  <p> {actividad.ubicacion || 'Sin ubicación'}</p>
-                  <p> {formatMoneda(actividad.precio)}</p>
-                  <p> Cupo disponible: {disponible}</p>
-                </div>
-
-                {yaInscrito ? (
-                  <p style={{ color: '#6be0a0', fontWeight: 700, marginTop: '1rem' }}>
-                    Ya estás inscrito
+                <div className="client-activity-body">
+                  <p
+                    style={{
+                      color: '#b8964f',
+                      fontSize: '.68rem',
+                      fontWeight: 700,
+                      letterSpacing: '.1em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    {actividad.estado}
                   </p>
-                ) : (
-                  <div style={{ display: 'flex', gap: '.5rem', marginTop: '1rem' }}>
-                    <input
-                      type="number"
-                      min="1"
-                      max={Math.max(1, disponible)}
-                      value={cantidades[actividad.id_actividad] || 1}
-                      onChange={(event) =>
-                        setCantidades((actual) => ({
-                          ...actual,
-                          [actividad.id_actividad]: event.target.value,
-                        }))
-                      }
-                      style={{ maxWidth: 80 }}
-                    />
-                    <button
-                      className="btn-new"
-                      onClick={() => inscribirse(actividad.id_actividad)}
-                      disabled={
-                        disponible < 1 ||
-                        procesando === `act-${actividad.id_actividad}`
-                      }
-                    >
-                      {procesando === `act-${actividad.id_actividad}`
-                        ? 'Inscribiendo...'
-                        : 'Inscribirme'}
-                    </button>
+
+                  <h3
+                    style={{
+                      color: '#123c69',
+                      margin: '.5rem 0',
+                    }}
+                  >
+                    {actividad.nombre}
+                  </h3>
+
+                  <p
+                    className="muted"
+                    style={{ fontSize: '.82rem' }}
+                  >
+                    {actividad.descripcion ||
+                      'Sin descripción'}
+                  </p>
+
+                  <div
+                    style={{
+                      marginTop: '1rem',
+                      fontSize: '.82rem',
+                      color: '#667789',
+                    }}
+                  >
+                    <p>
+                      {formatFecha(
+                        actividad.fecha_actividad
+                      )}
+                    </p>
+
+                    <p>
+                      {String(
+                        actividad.hora_inicio || ''
+                      ).slice(0, 5)}
+                    </p>
+
+                    <p>
+                      {actividad.ubicacion ||
+                        'Sin ubicación'}
+                    </p>
+
+                    <p>
+                      {formatMoneda(actividad.precio)}
+                    </p>
+
+                    <p>
+                      Cupo disponible: {disponible}
+                    </p>
                   </div>
-                )}
-              </div>
+
+                  {yaInscrito ? (
+                    <p
+                      style={{
+                        color: '#6be0a0',
+                        fontWeight: 700,
+                        marginTop: '1rem',
+                      }}
+                    >
+                      Ya estás inscrito
+                    </p>
+                  ) : (
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '.5rem',
+                        marginTop: '1rem',
+                      }}
+                    >
+                      <input
+                        type="number"
+                        min="1"
+                        max={Math.max(1, disponible)}
+                        value={
+                          cantidades[
+                          actividad.id_actividad
+                          ] || 1
+                        }
+                        onChange={(event) =>
+                          setCantidades((actual) => ({
+                            ...actual,
+                            [actividad.id_actividad]:
+                              event.target.value,
+                          }))
+                        }
+                        style={{ maxWidth: 80 }}
+                      />
+
+                      <button
+                        className="btn-new"
+                        onClick={() =>
+                          inscribirse(
+                            actividad.id_actividad
+                          )
+                        }
+                        disabled={
+                          disponible < 1 ||
+                          procesando ===
+                          `act-${actividad.id_actividad}`
+                        }
+                      >
+                        {procesando ===
+                          `act-${actividad.id_actividad}`
+                          ? 'Inscribiendo...'
+                          : 'Inscribirme'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </article>
             );
           })}
         </div>
       )}
 
-      <h3 style={{
-        color: '#f0f0f0',
-        fontSize: '.9rem',
-        textTransform: 'uppercase',
-        letterSpacing: '.06em',
-        marginBottom: '1rem',
-      }}>
+      <h3
+        style={{
+          color: '#123c69',
+          fontSize: '.9rem',
+          textTransform: 'uppercase',
+          letterSpacing: '.06em',
+          marginBottom: '1rem',
+        }}
+      >
         Mis Inscripciones
       </h3>
 
       {inscripciones.length === 0 ? (
-        <p className="muted">Todavía no tienes inscripciones.</p>
+        <p className="muted">
+          Todavía no tienes inscripciones.
+        </p>
       ) : (
         <div className="admin-table-wrap">
           <table className="admin-table">
@@ -1425,24 +1927,52 @@ function ActividadesClienteSection() {
                 <th></th>
               </tr>
             </thead>
+
             <tbody>
               {inscripciones.map((inscripcion) => (
                 <tr key={inscripcion.id_inscripcion}>
-                  <td>{inscripcion.actividad_nombre}</td>
-                  <td className="muted">{formatFecha(inscripcion.fecha_actividad)}</td>
-                  <td>{inscripcion.cantidad_personas}</td>
-                  <td>{formatMoneda(inscripcion.precio_total)}</td>
-                  <td>{inscripcion.estado}</td>
                   <td>
-                    {inscripcion.estado === 'CONFIRMADA' && (
-                      <button
-                        className="btn-icon danger"
-                        onClick={() => cancelar(inscripcion.id_inscripcion)}
-                        disabled={procesando === `ins-${inscripcion.id_inscripcion}`}
-                      >
-                        Cancelar
-                      </button>
+                    {inscripcion.actividad_nombre}
+                  </td>
+
+                  <td className="muted">
+                    {formatFecha(
+                      inscripcion.fecha_actividad
                     )}
+                  </td>
+
+                  <td>
+                    {inscripcion.cantidad_personas}
+                  </td>
+
+                  <td>
+                    {formatMoneda(
+                      inscripcion.precio_total
+                    )}
+                  </td>
+
+                  <td>
+                    {inscripcion.estado}
+                  </td>
+
+                  <td>
+                    {inscripcion.estado ===
+                      'CONFIRMADA' && (
+                        <button
+                          className="btn-icon danger"
+                          onClick={() =>
+                            cancelar(
+                              inscripcion.id_inscripcion
+                            )
+                          }
+                          disabled={
+                            procesando ===
+                            `ins-${inscripcion.id_inscripcion}`
+                          }
+                        >
+                          Cancelar
+                        </button>
+                      )}
                   </td>
                 </tr>
               ))}
@@ -1454,8 +1984,7 @@ function ActividadesClienteSection() {
   );
 }
 
-
-// ── Sección: Pases de Día para Cliente ────────────────────────────────────────
+// ── Pases de Día ──────────────────────────────────────────────────────────────
 
 function PasesClienteSection() {
   const [tipos, setTipos] = useState([]);
@@ -1470,11 +1999,14 @@ function PasesClienteSection() {
   const cargar = async () => {
     setLoading(true);
     setError('');
+
     try {
-      const [tiposData, pasesData] = await Promise.all([
-        getTiposPaseCliente(),
-        getMisPases(),
-      ]);
+      const [tiposData, pasesData] =
+        await Promise.all([
+          getTiposPaseCliente(),
+          getMisPases(),
+        ]);
+
       setTipos(tiposData.tipos || []);
       setMisPases(pasesData.pases || []);
     } catch (err) {
@@ -1490,11 +2022,16 @@ function PasesClienteSection() {
 
   const flash = (mensaje) => {
     setSuccess(mensaje);
-    window.setTimeout(() => setSuccess(''), 3000);
+
+    window.setTimeout(() => {
+      setSuccess('');
+    }, 3000);
   };
 
   const comprar = async (tipo) => {
-    const cantidad = Number(cantidades[tipo.id_tipo_pase] || 1);
+    const cantidad = Number(
+      cantidades[tipo.id_tipo_pase] || 1
+    );
 
     setProcesando(tipo.id_tipo_pase);
     setError('');
@@ -1507,6 +2044,7 @@ function PasesClienteSection() {
       });
 
       flash('Pase adquirido correctamente.');
+
       await cargar();
     } catch (err) {
       setError(err.message);
@@ -1516,95 +2054,172 @@ function PasesClienteSection() {
   };
 
   if (loading) {
-    return <p className="admin-loading">Cargando pases...</p>;
+    return (
+      <p className="admin-loading">
+        Cargando pases...
+      </p>
+    );
   }
 
   return (
     <div>
       <div className="admin-section-header">
-        <h2 className="admin-section-title">Pases de Día</h2>
-        <button className="btn-icon" onClick={cargar}>Actualizar</button>
+        <h2 className="admin-section-title">
+          Pases de Día
+        </h2>
+
+        <button
+          className="btn-icon"
+          onClick={cargar}
+        >
+          Actualizar
+        </button>
       </div>
 
-      {error && <div className="admin-error">{error}</div>}
-      {success && <div className="admin-success">{success}</div>}
+      {error && (
+        <div className="admin-error">
+          {error}
+        </div>
+      )}
 
-      <div className="form-field" style={{ maxWidth: 320, marginBottom: '1.5rem' }}>
-        <label htmlFor="fecha-uso-pase">Fecha de uso</label>
+      {success && (
+        <div className="admin-success">
+          {success}
+        </div>
+      )}
+
+      <div
+        className="form-field"
+        style={{
+          maxWidth: 320,
+          marginBottom: '1.5rem',
+        }}
+      >
+        <label htmlFor="fecha-uso-pase">
+          Fecha de uso
+        </label>
+
         <input
           id="fecha-uso-pase"
           type="date"
           min={hoy()}
           value={fechaUso}
-          onChange={(e) => setFechaUso(e.target.value)}
+          onChange={(e) =>
+            setFechaUso(e.target.value)
+          }
         />
       </div>
 
-      <h3 style={{ color: '#f0f0f0', marginBottom: '1rem' }}>
+      <h3
+        style={{
+          color: '#123c69',
+          marginBottom: '1rem',
+        }}
+      >
         Pases disponibles
       </h3>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: '1rem',
-        marginBottom: '2.5rem',
-      }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns:
+            'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '1rem',
+          marginBottom: '2.5rem',
+        }}
+      >
         {tipos.map((tipo) => (
           <div
             key={tipo.id_tipo_pase}
             style={{
-              background: '#111',
+              background: '#ffffff',
               border: '1px solid #1e1e1e',
               borderRadius: 12,
               padding: '1.25rem',
             }}
           >
-            <p style={{
-              color: '#c9a84c',
-              fontSize: '.68rem',
-              fontWeight: 700,
-              letterSpacing: '.1em',
-              textTransform: 'uppercase',
-            }}>
+            <p
+              style={{
+                color: '#b8964f',
+                fontSize: '.68rem',
+                fontWeight: 700,
+                letterSpacing: '.1em',
+                textTransform: 'uppercase',
+              }}
+            >
               {tipo.estado}
             </p>
 
-            <h3 style={{ color: '#f0f0f0', margin: '.5rem 0' }}>
+            <h3
+              style={{
+                color: '#123c69',
+                margin: '.5rem 0',
+              }}
+            >
               {tipo.nombre}
             </h3>
 
-            <p className="muted" style={{ fontSize: '.82rem' }}>
-              {tipo.descripcion || 'Sin descripción'}
+            <p
+              className="muted"
+              style={{ fontSize: '.82rem' }}
+            >
+              {tipo.descripcion ||
+                'Sin descripción'}
             </p>
 
-            <p style={{
-              color: '#c9a84c',
-              fontWeight: 700,
-              fontSize: '1.1rem',
-              marginTop: '1rem',
-            }}>
+            <p
+              style={{
+                color: '#b8964f',
+                fontWeight: 700,
+                fontSize: '1.1rem',
+                marginTop: '1rem',
+              }}
+            >
               {formatMoneda(tipo.precio)}
             </p>
 
-            <p className="muted" style={{ fontSize: '.8rem', marginTop: '.5rem' }}>
-              Máximo {tipo.cantidad_maxima_personas} personas
+            <p
+              className="muted"
+              style={{
+                fontSize: '.8rem',
+                marginTop: '.5rem',
+              }}
+            >
+              Máximo {tipo.cantidad_maxima_personas}{' '}
+              personas
             </p>
 
-            <p className="muted" style={{ fontSize: '.8rem', marginTop: '.5rem' }}>
-              Incluye: {tipo.servicios_incluidos || 'Sin servicios especificados'}
+            <p
+              className="muted"
+              style={{
+                fontSize: '.8rem',
+                marginTop: '.5rem',
+              }}
+            >
+              Incluye:{' '}
+              {tipo.servicios_incluidos ||
+                'Sin servicios especificados'}
             </p>
 
-            <div style={{ display: 'flex', gap: '.5rem', marginTop: '1rem' }}>
+            <div
+              style={{
+                display: 'flex',
+                gap: '.5rem',
+                marginTop: '1rem',
+              }}
+            >
               <input
                 type="number"
                 min="1"
                 max={tipo.cantidad_maxima_personas}
-                value={cantidades[tipo.id_tipo_pase] || 1}
+                value={
+                  cantidades[tipo.id_tipo_pase] || 1
+                }
                 onChange={(e) =>
                   setCantidades((actual) => ({
                     ...actual,
-                    [tipo.id_tipo_pase]: e.target.value,
+                    [tipo.id_tipo_pase]:
+                      e.target.value,
                   }))
                 }
                 style={{ maxWidth: 80 }}
@@ -1613,7 +2228,9 @@ function PasesClienteSection() {
               <button
                 className="btn-new"
                 onClick={() => comprar(tipo)}
-                disabled={procesando === tipo.id_tipo_pase}
+                disabled={
+                  procesando === tipo.id_tipo_pase
+                }
               >
                 {procesando === tipo.id_tipo_pase
                   ? 'Adquiriendo...'
@@ -1624,12 +2241,19 @@ function PasesClienteSection() {
         ))}
       </div>
 
-      <h3 style={{ color: '#f0f0f0', marginBottom: '1rem' }}>
+      <h3
+        style={{
+          color: '#123c69',
+          marginBottom: '1rem',
+        }}
+      >
         Mis Pases
       </h3>
 
       {misPases.length === 0 ? (
-        <p className="muted">Todavía no has adquirido pases.</p>
+        <p className="muted">
+          Todavía no has adquirido pases.
+        </p>
       ) : (
         <div className="admin-table-wrap">
           <table className="admin-table">
@@ -1643,17 +2267,40 @@ function PasesClienteSection() {
                 <th>Estado</th>
               </tr>
             </thead>
+
             <tbody>
               {misPases.map((pase) => (
                 <tr key={pase.id_pase_cliente}>
-                  <td style={{ fontWeight: 700, color: '#c9a84c' }}>
+                  <td
+                    style={{
+                      fontWeight: 700,
+                      color: '#b8964f',
+                    }}
+                  >
                     {pase.codigo_pase}
                   </td>
-                  <td>{pase.tipo_pase_nombre}</td>
-                  <td className="muted">{formatFecha(pase.fecha_uso)}</td>
-                  <td>{pase.cantidad_personas}</td>
-                  <td>{formatMoneda(pase.precio_aplicado)}</td>
-                  <td>{pase.estado}</td>
+
+                  <td>
+                    {pase.tipo_pase_nombre}
+                  </td>
+
+                  <td className="muted">
+                    {formatFecha(pase.fecha_uso)}
+                  </td>
+
+                  <td>
+                    {pase.cantidad_personas}
+                  </td>
+
+                  <td>
+                    {formatMoneda(
+                      pase.precio_aplicado
+                    )}
+                  </td>
+
+                  <td>
+                    {pase.estado}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -1667,47 +2314,143 @@ function PasesClienteSection() {
 // ── Página principal ──────────────────────────────────────────────────────────
 
 const SECCIONES_CLIENTE = [
-  { id: 'reservar', label: 'Reservar habitación', icono: '🛏️' },
-  { id: 'misreservas', label: 'Mis reservaciones' },
-  { id: 'servicios', label: 'Servicios Adicionales' },
-  { id: 'actividades', label: 'Actividades' },
-  { id: 'pases', label: 'Pases de Día' },
+  {
+    id: 'reservar',
+    label: 'Reservar habitación',
+    icon: 'room',
+  },
+  {
+    id: 'misreservas',
+    label: 'Mis reservaciones',
+    icon: 'reservations',
+  },
+  {
+    id: 'servicios',
+    label: 'Servicios Adicionales',
+    icon: 'services',
+  },
+  {
+    id: 'actividades',
+    label: 'Actividades',
+    icon: 'activities',
+  },
+  {
+    id: 'pases',
+    label: 'Pases de Día',
+    icon: 'pass',
+  },
+  {
+    id: 'codigos',
+    label: 'Códigos de acceso',
+    icon: 'qr',
+  },
+  {
+    id: 'calificaciones',
+    label: 'Calificar estancia',
+    icon: 'star',
+  },
 ];
 
 export default function ReservasPage() {
   const { systemUser, logout } = useAuth();
   const navigate = useNavigate();
+
   const [seccion, setSeccion] = useState('reservar');
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const selectSection = (id) => {
+    setSeccion(id);
+    setMenuOpen(false);
+  };
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login', { replace: true });
+
+    navigate('/login', {
+      replace: true,
+    });
   };
 
   return (
-    <div className="admin-layout">
-      {/* ── Barra lateral ────────────────────────────────────── */}
-      <aside className="admin-sidebar">
-        <p className="admin-sidebar-brand">Hotel Wall Street</p>
-        <p className="admin-sidebar-sub">Mi cuenta</p>
+    <div className="admin-layout client-layout">
+      <button
+        className="mobile-menu-button"
+        onClick={() => setMenuOpen(true)}
+        aria-label="Abrir menú"
+      >
+        <HotelIcon name="menu" />
+      </button>
+
+      {menuOpen && (
+        <button
+          className="sidebar-backdrop"
+          aria-label="Cerrar menú"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
+
+      <aside
+        className={`admin-sidebar ${menuOpen ? 'open' : ''
+          }`}
+      >
+        <button
+          className="sidebar-close"
+          onClick={() => setMenuOpen(false)}
+          aria-label="Cerrar menú"
+        >
+          <HotelIcon name="close" />
+        </button>
+
+        <Link
+          to="/"
+          className="admin-brand-lockup brand-link"
+        >
+          <div
+            className="admin-brand-mark"
+            aria-hidden="true"
+          >
+            W
+          </div>
+
+          <div>
+            <p className="admin-sidebar-brand">
+              Hotel Wall Street
+            </p>
+
+            <p className="admin-sidebar-sub">
+              Mi cuenta
+            </p>
+          </div>
+        </Link>
 
         <nav>
           <ul className="admin-nav">
             <li>
               <button
                 className="admin-nav-item"
-                onClick={() => navigate('/perfil')}
+                onClick={() => {
+                  setMenuOpen(false);
+                  navigate('/perfil');
+                }}
               >
-                Mi perfil
+                <HotelIcon name="profile" />
+                <span>Mi perfil</span>
               </button>
             </li>
-            {SECCIONES_CLIENTE.map(s => (
+
+            {SECCIONES_CLIENTE.map((s) => (
               <li key={s.id}>
                 <button
-                  className={`admin-nav-item ${seccion === s.id ? 'active' : ''}`}
-                  onClick={() => setSeccion(s.id)}
+                  className={`admin-nav-item ${seccion === s.id
+                    ? 'active'
+                    : ''
+                    }`}
+                  onClick={() =>
+                    selectSection(s.id)
+                  }
                 >
-                  {s.label}
+                  <HotelIcon name={s.icon} />
+                  <span>{s.label}</span>
                 </button>
               </li>
             ))}
@@ -1715,38 +2458,66 @@ export default function ReservasPage() {
         </nav>
 
         <div className="admin-sidebar-footer">
-          <p className="admin-sidebar-user">{systemUser?.correo}</p>
-          <button className="btn-logout" style={{ width: '100%' }} onClick={handleLogout}>
-            Cerrar sesión
+          <p className="admin-sidebar-user">
+            {systemUser?.correo}
+          </p>
+
+          <button
+            className="btn-logout"
+            style={{ width: '100%' }}
+            onClick={handleLogout}
+          >
+            <HotelIcon name="logout" />
+            <span>Cerrar sesión</span>
           </button>
         </div>
       </aside>
 
-      {/* ── Contenido ─────────────────────────────────────────── */}
       <div className="admin-content">
         <header className="admin-topbar">
           <span className="admin-topbar-title">
-            {SECCIONES_CLIENTE.find(s => s.id === seccion)?.label || 'Reservaciones'}
+            {SECCIONES_CLIENTE.find(
+              (s) => s.id === seccion
+            )?.label || 'Reservaciones'}
           </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>
-              {systemUser?.correo}
-            </span>
-            <span style={{
-              fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em',
-              color: '#c9a84c', textTransform: 'uppercase',
-            }}>
+
+          <div>
+            <span>{systemUser?.correo}</span>
+
+            <span className="topbar-role">
               {systemUser?.rol}
             </span>
           </div>
         </header>
 
         <main className="admin-main">
-          {seccion === 'reservar' && <ReservarSection />}
-          {seccion === 'misreservas' && <MisReservacionesSection />}
-          {seccion === 'servicios' && <ServiciosClienteSection />}
-          {seccion === 'actividades' && <ActividadesClienteSection />}
-          {seccion === 'pases' && <PasesClienteSection />}
+          {seccion === 'reservar' && (
+            <ReservarSection />
+          )}
+
+          {seccion === 'misreservas' && (
+            <MisReservacionesSection />
+          )}
+
+          {seccion === 'servicios' && (
+            <ServiciosClienteSection />
+          )}
+
+          {seccion === 'actividades' && (
+            <ActividadesClienteSection />
+          )}
+
+          {seccion === 'pases' && (
+            <PasesClienteSection />
+          )}
+
+          {seccion === 'codigos' && (
+            <CodigosAccesoSection />
+          )}
+
+          {seccion === 'calificaciones' && (
+            <CalificacionesSection />
+          )}
         </main>
       </div>
     </div>

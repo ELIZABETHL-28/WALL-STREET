@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import supabase from '../services/supabase';
 import '../styles/auth.css';
@@ -127,7 +127,7 @@ export default function ProfilePage() {
     <div className="profile-page">
       <div className="profile-container">
         <div className="profile-header">
-          <p className="profile-brand">Hotel Wall Street</p>
+          <Link to="/" className="profile-brand brand-link">W · Hotel Wall Street</Link>
           <button className="btn-logout" onClick={handleLogout}>Cerrar sesión</button>
         </div>
 
@@ -160,7 +160,7 @@ export default function ProfilePage() {
                 onClick={() => navigate('/reservas')}
                 style={{ fontSize: '0.85rem' }}
               >
-                🛏️ Mis Reservaciones
+                Mis Reservaciones
               </button>
             </div>
           )}

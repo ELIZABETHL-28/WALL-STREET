@@ -1,8 +1,18 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { signInWithEmail, signInWithGoogle, syncUser, getCurrentSystemUser } from '../../services/auth.service';
 import supabase from '../../services/supabase';
 import '../../styles/auth.css';
+import authFacade from '../../assets/hotel/facade.jpg';
+import authSuite from '../../assets/hotel/suite_presidential.jpg';
+import authLobby from '../../assets/hotel/lobby.jpg';
+
+
+const AUTH_SLIDES = [
+  authFacade,
+  authSuite,
+  authLobby,
+];
 
 // Mensajes amigables para errores comunes de Supabase
 function getFriendlyError(msg = '') {
@@ -20,6 +30,15 @@ export default function LoginPage() {
   const [showPass, setShowPass]   = useState(false);
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState('');
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setActiveSlide((current) => (current + 1) % AUTH_SLIDES.length);
+    }, 5500);
+
+    return () => window.clearInterval(timer);
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -65,7 +84,15 @@ export default function LoginPage() {
     <div className="auth-layout">
       {/* Panel visual */}
       <div className="auth-visual">
-        <div className="auth-visual-bg" />
+        <div className="auth-visual-slider" aria-hidden="true">
+          {AUTH_SLIDES.map((image, index) => (
+            <div
+              key={image}
+              className={`auth-visual-bg ${index === activeSlide ? 'active' : ''}`}
+              style={{ backgroundImage: `url(${image})` }}
+            />
+          ))}
+        </div>
         <div className="auth-visual-overlay" />
         <div className="auth-visual-content">
           <p className="auth-visual-brand">Hotel Wall Street</p>
@@ -78,7 +105,10 @@ export default function LoginPage() {
 
       {/* Panel de formulario */}
       <div className="auth-form-panel">
-        <p className="auth-logo">Hotel Wall Street</p>
+        <Link to="/" className="auth-logo-lockup brand-link">
+          <span className="auth-logo-mark" aria-hidden="true">W</span>
+          <p className="auth-logo">Hotel Wall Street</p>
+        </Link>
 
         <h2 className="auth-title">Iniciar sesión</h2>
         <p className="auth-subtitle">Accede a tu cuenta</p>

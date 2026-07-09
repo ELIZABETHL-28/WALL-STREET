@@ -156,16 +156,9 @@ export default function ActividadesSection() {
       {mostrarForm && (
         <form
           onSubmit={guardar}
-          style={{
-            background: '#111',
-            border: '1px solid #1e1e1e',
-            borderRadius: 12,
-            padding: '1.25rem',
-            marginBottom: '1.5rem',
-            maxWidth: 760,
-          }}
+          className="admin-edit-card"
         >
-          <h3 style={{ color: '#f0f0f0', marginBottom: '1rem' }}>
+          <h3 className="admin-subsection-title">
             {editandoId ? 'Editar actividad' : 'Nueva actividad'}
           </h3>
 
@@ -287,7 +280,7 @@ export default function ActividadesSection() {
       )}
 
       {actividades.length === 0 ? (
-        <p style={{ color: 'rgba(255,255,255,.35)', padding: '2rem 0' }}>
+        <p className="admin-empty-state">
           No hay actividades registradas.
         </p>
       ) : (

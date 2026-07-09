@@ -4,6 +4,7 @@
  * La identidad del cliente proviene SOLO de req.user — nunca del body.
  */
 const svc = require('../services/actividad.service');
+const { registrarAuditoria } = require('../services/auditoria.service');
 
 const ESTADOS_ACTIVIDAD = ['PROGRAMADA', 'ACTIVA', 'FINALIZADA', 'CANCELADA'];
 
@@ -240,6 +241,7 @@ async function inscribirse(req, res, next) {
       return res.status(400).json({ success: false, error: 'cantidadPersonas debe ser un entero >= 1.' });
 
     const inscripcion = await svc.inscribirseActividad(req.user.idUsuario, id, cantidadPersonas);
+    void registrarAuditoria({ idUsuario: req.user.idUsuario, rol: req.user.rol, accion: 'INSCRIBIRSE_ACTIVIDAD', modulo: 'ACTIVIDADES', entidadId: inscripcion.id_inscripcion, detalle: { idActividad: id, cantidadPersonas } });
     return res.status(201).json({ success: true, inscripcion });
   } catch (err) { return manejarError(err, res, next); }
 }
@@ -263,6 +265,7 @@ async function cancelarInscripcion(req, res, next) {
     if (!id) return res.status(400).json({ success: false, error: 'ID de inscripción inválido.' });
 
     const inscripcion = await svc.cancelarInscripcion(req.user.idUsuario, id);
+    void registrarAuditoria({ idUsuario: req.user.idUsuario, rol: req.user.rol, accion: 'CANCELAR_INSCRIPCION', modulo: 'ACTIVIDADES', entidadId: id, detalle: { idActividad: inscripcion.id_actividad } });
     return res.status(200).json({ success: true, inscripcion });
   } catch (err) { return manejarError(err, res, next); }
 }

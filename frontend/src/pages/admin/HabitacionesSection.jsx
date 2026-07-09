@@ -96,7 +96,7 @@ export default function HabitacionesSection() {
           <select
             value={filtroEstado}
             onChange={e => setFiltroEstado(e.target.value)}
-            style={{ padding: '0.5rem 0.8rem', background: '#141414', border: '1px solid #222', borderRadius: '7px', color: '#f0f0f0', fontSize: '0.82rem' }}
+            style={{ padding: '0.5rem 0.8rem', background: '#ffffff', border: '1px solid #d8dfe5', borderRadius: '7px', color: '#17324d', fontSize: '0.82rem' }}
           >
             {ESTADOS.map(s => <option key={s} value={s}>{s || 'Todos los estados'}</option>)}
           </select>
@@ -145,7 +145,7 @@ export default function HabitacionesSection() {
                     <span className={`estado-badge estado-${h.estado}`}>{h.estado}</span>
                   </td>
                   <td>
-                    <button className="btn-icon" onClick={() => setModalHab(h)} title="Editar">✎</button>
+                    <button className="btn-icon" onClick={() => setModalHab(h)} title="Editar">Editar</button>
                     <button className="btn-icon" onClick={() => setModalEstado(h)} title="Estado">⟳</button>
                     <button className="btn-icon" onClick={() => setModalCamas(h.id_habitacion)} title="Camas / Imágenes">⊞</button>
                   </td>

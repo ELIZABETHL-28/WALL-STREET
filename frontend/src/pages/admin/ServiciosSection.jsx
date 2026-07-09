@@ -121,7 +121,7 @@ export default function ServiciosSection() {
                       onClick={() => setModalServicio(s)}
                       title="Editar"
                     >
-                      ✎
+                      Editar
                     </button>
                     <button
                       className="btn-icon"

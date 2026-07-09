@@ -91,7 +91,7 @@ export default function CamasImagenesModal({ idHabitacion, tiposCama, onClose })
       <div className="modal-box" style={{ maxWidth: '640px' }} onClick={e => e.stopPropagation()}>
         <p className="modal-title">
           Camas e Imágenes
-          {hab && <span style={{ color: 'rgba(255,255,255,0.35)', fontWeight: 400, fontSize: '0.82rem', marginLeft: '0.75rem' }}>
+          {hab && <span style={{ color: '#7a8490', fontWeight: 400, fontSize: '0.82rem', marginLeft: '0.75rem' }}>
             Hab. {hab.numero_habitacion}
           </span>}
         </p>
@@ -117,10 +117,10 @@ export default function CamasImagenesModal({ idHabitacion, tiposCama, onClose })
                     <input
                       type="number" min="1"
                       defaultValue={c.cantidad}
-                      style={{ width: '60px', padding: '0.3rem 0.5rem', background: '#181818', border: '1px solid #242424', borderRadius: '5px', color: '#f0f0f0', fontSize: '0.82rem' }}
+                      style={{ width: '60px', padding: '0.3rem 0.5rem', background: '#ffffff', border: '1px solid #d8dfe5', borderRadius: '5px', color: '#17324d', fontSize: '0.82rem' }}
                       onBlur={e => { if (Number(e.target.value) !== c.cantidad) handleActualizarCama(c.id_habitacion_cama, e.target.value); }}
                     />
-                    <button className="btn-icon danger" onClick={() => handleEliminarCama(c.id_habitacion_cama)} title="Eliminar">✕</button>
+                    <button className="btn-icon danger" onClick={() => handleEliminarCama(c.id_habitacion_cama)} title="Eliminar">Eliminar</button>
                   </div>
                 </div>
               ))}
@@ -161,7 +161,7 @@ export default function CamasImagenesModal({ idHabitacion, tiposCama, onClose })
                   {img.es_principal && (
                     <span style={{ fontSize: '0.65rem', color: '#c9a84c', border: '1px solid rgba(201,168,76,.3)', borderRadius: '10px', padding: '0.1rem 0.4rem' }}>Principal</span>
                   )}
-                  <button className="btn-icon danger" onClick={() => handleEliminarImagen(img.id_imagen)} title="Eliminar">✕</button>
+                  <button className="btn-icon danger" onClick={() => handleEliminarImagen(img.id_imagen)} title="Eliminar">Eliminar</button>
                 </div>
               ))}
 

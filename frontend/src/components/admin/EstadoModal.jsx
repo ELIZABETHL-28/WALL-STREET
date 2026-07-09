@@ -14,8 +14,8 @@ export default function EstadoModal({ habitacion, onSave, onClose, saving }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box" style={{ maxWidth: '380px' }} onClick={e => e.stopPropagation()}>
         <p className="modal-title">Cambiar Estado</p>
-        <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)', marginBottom: '1rem' }}>
-          Habitación: <strong style={{ color: '#f0f0f0' }}>{habitacion?.numero_habitacion}</strong>
+        <p style={{ fontSize: '0.82rem', color: '#7a8490', marginBottom: '1rem' }}>
+          Habitación: <strong style={{ color: '#17324d' }}>{habitacion?.numero_habitacion}</strong>
         </p>
 
         <form onSubmit={handleSubmit}>

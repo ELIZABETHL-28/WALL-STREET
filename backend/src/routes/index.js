@@ -7,6 +7,9 @@ const reservacionRoutes = require('./reservacion.routes');
 const servicioRoutes = require('./servicio.routes');
 const actividadRoutes = require('./actividad.routes');
 const paseRoutes = require('./pase.routes');
+const codigoAccesoRoutes = require('./codigoAcceso.routes');
+const comentarioRoutes = require('./comentario.routes');
+const auditoriaRoutes = require('./auditoria.routes');
 
 const router = Router();
 
@@ -33,5 +36,14 @@ router.use('/actividades', actividadRoutes);
 
 // /api/pases
 router.use('/pases', paseRoutes);
+
+// /api/codigos-acceso
+router.use('/codigos-acceso', codigoAccesoRoutes);
+
+// /api/comentarios
+router.use('/comentarios', comentarioRoutes);
+
+// /api/auditoria
+router.use('/auditoria', auditoriaRoutes);
 
 module.exports = router;

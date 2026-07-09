@@ -154,16 +154,9 @@ export default function PasesSection() {
             {mostrarForm && (
                 <form
                     onSubmit={guardar}
-                    style={{
-                        background: '#111',
-                        border: '1px solid #1e1e1e',
-                        borderRadius: 12,
-                        padding: '1.25rem',
-                        maxWidth: 760,
-                        marginBottom: '1.5rem',
-                    }}
+                    className="admin-edit-card"
                 >
-                    <h3 style={{ color: '#f0f0f0', marginBottom: '1rem' }}>
+                    <h3 className="admin-subsection-title">
                         {editandoId ? 'Editar tipo de pase' : 'Nuevo tipo de pase'}
                     </h3>
 
@@ -258,7 +251,7 @@ export default function PasesSection() {
                 </form>
             )}
 
-            <h3 style={{ color: '#f0f0f0', marginBottom: '1rem' }}>
+            <h3 className="admin-subsection-title">
                 Tipos de pase
             </h3>
 
@@ -308,7 +301,7 @@ export default function PasesSection() {
                 </table>
             </div>
 
-            <h3 style={{ color: '#f0f0f0', marginBottom: '1rem' }}>
+            <h3 className="admin-subsection-title">
                 Pases adquiridos
             </h3>
 

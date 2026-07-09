@@ -5,6 +5,7 @@
  * Nunca interpola req.body/params en SQL directamente.
  */
 const svc = require('../services/habitacion.service');
+const { registrarAuditoria } = require('../services/auditoria.service');
 
 // Estados válidos según schema.sql
 const ESTADOS_HABITACION = ['DISPONIBLE', 'RESERVADA', 'OCUPADA', 'LIMPIEZA', 'MANTENIMIENTO'];
@@ -175,6 +176,7 @@ async function crearHabitacion(req, res, next) {
       estado: estado ?? 'DISPONIBLE',
     });
 
+    void registrarAuditoria({ idUsuario: req.user.idUsuario, rol: req.user.rol, accion: 'CREAR_HABITACION', modulo: 'HABITACIONES', entidadId: habitacion.id_habitacion, detalle: { numeroHabitacion: habitacion.numero_habitacion } });
     return res.status(201).json({ success: true, habitacion });
   } catch (err) { return next(err); }
 }
@@ -222,6 +224,7 @@ async function editarHabitacion(req, res, next) {
     });
     if (!habitacion) return res.status(404).json({ success: false, error: 'Habitación no encontrada.' });
 
+    void registrarAuditoria({ idUsuario: req.user.idUsuario, rol: req.user.rol, accion: 'EDITAR_HABITACION', modulo: 'HABITACIONES', entidadId: habitacion.id_habitacion, detalle: { estado: habitacion.estado } });
     return res.status(200).json({ success: true, habitacion });
   } catch (err) { return next(err); }
 }
@@ -238,6 +241,7 @@ async function cambiarEstado(req, res, next) {
     const habitacion = await svc.cambiarEstadoHabitacion(id, estado);
     if (!habitacion) return res.status(404).json({ success: false, error: 'Habitación no encontrada.' });
 
+    void registrarAuditoria({ idUsuario: req.user.idUsuario, rol: req.user.rol, accion: 'CAMBIAR_ESTADO_HABITACION', modulo: 'HABITACIONES', entidadId: habitacion.id_habitacion, detalle: { estado } });
     return res.status(200).json({ success: true, habitacion });
   } catch (err) { return next(err); }
 }

@@ -4,6 +4,7 @@
  */
 
 const svc = require('../services/reservacion.service');
+const { registrarAuditoria } = require('../services/auditoria.service');
 
 const ESTADOS_RESERVACION = [
   'PENDIENTE',
@@ -427,6 +428,8 @@ async function crearReservacion(
         }
       );
 
+    void registrarAuditoria({ idUsuario: req.user.idUsuario, rol: req.user.rol, accion: 'CREAR_RESERVACION', modulo: 'RESERVACIONES', entidadId: reservacion.id_reservacion, detalle: { codigo: reservacion.codigo_reservacion } });
+
     return res.status(201).json({
       success: true,
       reservacion,
@@ -465,6 +468,8 @@ async function cancelarMia(
         req.user.idUsuario,
         id
       );
+
+    void registrarAuditoria({ idUsuario: req.user.idUsuario, rol: req.user.rol, accion: 'CANCELAR_RESERVACION', modulo: 'RESERVACIONES', entidadId: id, detalle: { estado: reservacion.estado } });
 
     return res.status(200).json({
       success: true,
@@ -636,6 +641,8 @@ async function cambiarEstadoAdmin(
         id,
         estado
       );
+
+    void registrarAuditoria({ idUsuario: req.user.idUsuario, rol: req.user.rol, accion: 'CAMBIAR_ESTADO_RESERVACION', modulo: 'RESERVACIONES', entidadId: id, detalle: { estado } });
 
     return res.status(200).json({
       success: true,
